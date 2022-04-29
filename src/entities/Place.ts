@@ -1,9 +1,19 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate, BaseEntity } from 'typeorm'
 
-@Entity()
-class Place {
+export enum PlaceType {
+  HOSPOTAL = 'hospital',
+}
+
+@Entity('places')
+class Place extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
+
+  @Column()
+  name: string
+
+  @Column({ type: 'enum', enum: PlaceType, default: PlaceType.HOSPOTAL })
+  type: PlaceType
 
   @Column('double')
   latitude: number
