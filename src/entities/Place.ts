@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm'
+import Order from './Order'
 
 export enum PlaceType {
   HOSPOTAL = 'hospital',
@@ -24,6 +25,12 @@ class Place {
   @Index({ spatial: true })
   @Column({ type: 'point', spatialFeatureType: 'Point', srid: 4326 })
   point: string
+
+  @OneToMany(() => Order, order => order.departure, { nullable: true })
+  ordersAsDepature: Order[]
+
+  @OneToMany(() => Order, order => order.arrival, { nullable: true })
+  ordersAsArrival: Order[]
 
   @BeforeInsert()
   @BeforeUpdate()
