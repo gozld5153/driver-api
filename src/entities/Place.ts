@@ -1,11 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate, BaseEntity } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate } from 'typeorm'
 
 export enum PlaceType {
   HOSPOTAL = 'hospital',
 }
 
 @Entity('places')
-class Place extends BaseEntity {
+class Place {
   @PrimaryGeneratedColumn()
   id: number
 

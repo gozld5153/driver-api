@@ -5,10 +5,9 @@ import cookieParser from 'cookie-parser'
 
 import mapRoute from './routes/map'
 import setupRoute from './routes/setup'
-import { createConnection } from 'typeorm'
+import dataSource from './db/data-source'
 
 const app = express()
-const PORT = process.env.PORT || 5030
 
 app.use(express.json())
 app.use(morgan('dev'))
@@ -18,10 +17,12 @@ app.use(urlencoded({ extended: false }))
 
 app.use('/map', mapRoute)
 app.use('/setup', setupRoute)
+app.get('/', (_, res) => res.send('hello'))
 
+const PORT = process.env.PORT || 5030
 app.listen(PORT, async () => {
   try {
-    await createConnection()
+    await dataSource.initialize()
     console.log(`db connected at ${new Date()}`)
 
     console.log(`server running at http://localhost:${PORT}`)

@@ -1,5 +1,6 @@
 import faker from '@faker-js/faker/locale/ko'
 import express, { Request, Response } from 'express'
+import { placeRepository } from '../db/repositories'
 import Place from '../entities/Place'
 
 const router = express.Router()
@@ -8,7 +9,7 @@ router.get('/bulk/:quantity', async (req: Request, res: Response) => {
   const { quantity } = req.params
   const places = await getBulkPlaces(parseInt(quantity))
   // await Place.save(places, { chunk: places.length / 1000 })
-  await Place.save(places)
+  await placeRepository.save(places)
   res.send(places)
 })
 
