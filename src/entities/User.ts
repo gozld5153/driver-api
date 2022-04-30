@@ -10,6 +10,12 @@ class User {
 
   @Column()
   lastName: string
+
+  @Column()
+  email: string
+
+  @Column()
+  address: string
 }
 
 export default User
