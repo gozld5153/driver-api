@@ -5,32 +5,53 @@ import { Coord } from '../types/map'
 
 const router = express.Router()
 
-router.post('/camera', async (req: Request, res: Response) => {
-  const { region } = req.body as { region: Coord[] }
+const camera = async (req: Request, res: Response) => {
+  const { region }: { region: Coord[] } = req.body
+  try {
+    const polygon = `POLYGON((${region.map(coord => `${coord.latitude} ${coord.longitude}`).toString()}))`
+    const places = await placeRepository.findBy({
+      point: Raw(point => `MBRIntersects(ST_GeomFromText('${polygon}', 4326), ${point})`),
+    })
 
-  const polygon = `POLYGON((${region.map(spot => `${spot.latitude} ${spot.longitude}`).toString()}))`
-  const spots = await placeRepository.findBy({
-    point: Raw(point => `MBRIntersects(ST_GeomFromText('${polygon}', 4326), ${point})`),
-  })
+    return res.json(places)
+  } catch (err) {
+    console.log(err)
 
-  return res.json(spots)
-})
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+const getClosest = async (_: Request, res: Response) => {
+  // const { properties } = req.params
+  try {
+    const closest = await placeRepository
+      .createQueryBuilder()
+      .select(`*, st_distance_sphere(point, st_geomfromtext('POINT(37.610329 127.037739)', 4326)) as distance`)
+      .orderBy('distance')
+      .take(3)
+      .getRawMany()
 
-router.get('/closest', async (_: Request, res: Response) => {
-  const closest = await placeRepository
-    .createQueryBuilder()
-    .select(`*, st_distance_sphere(point, st_geomfromtext('POINT(37.610329 127.037739)', 4326)) as distance`)
-    .orderBy('distance')
-    .take(3)
-    .getRawMany()
+    return res.send(closest)
+  } catch (err) {
+    console.log(err)
 
-  res.send(closest)
-})
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+const count = async (_: Request, res: Response) => {
+  // const { properties } = req.params
+  try {
+    const placeCount = await placeRepository.count()
 
-router.get('/count', async (_: Request, res: Response) => {
-  const placeCount = await placeRepository.count()
+    return res.send({ placeCount })
+  } catch (err) {
+    console.log(err)
 
-  res.send({ placeCount })
-})
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+router.post('/camera', camera)
+router.get('/closest', getClosest)
+router.get('/count', count)
 
 export default router

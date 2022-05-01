@@ -1,22 +1,27 @@
-import faker from '@faker-js/faker/locale/ko'
 import express, { Request, Response } from 'express'
 import { placeRepository } from '../db/repositories'
 import Place from '../entities/Place'
+import faker from '../lib/faker'
 
 const router = express.Router()
 
-router.get('/bulk/:quantity', async (req: Request, res: Response) => {
+const insertBulkplaces = async (req: Request, res: Response) => {
   const { quantity } = req.params
-  const places = await getBulkPlaces(parseInt(quantity))
-  // await Place.save(places, { chunk: places.length / 1000 })
-  await placeRepository.save(places)
-  res.send(places)
-})
+  try {
+    const places = await getBulkPlaces(parseInt(quantity))
 
-router.get('/', (_: Request, res: Response) => {
-  const avatar = faker.image.avatar()
-  res.send({ greeting: 'hello', avatar })
-})
+    // await Place.save(places, { chunk: places.length / 1000 })
+    await placeRepository.save(places)
+
+    return res.send(places)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+router.get('/bulk/:quantity', insertBulkplaces)
 
 export default router
 

@@ -1,9 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm'
+import { PlaceType } from '../types/map'
 import Order from './Order'
-
-export enum PlaceType {
-  HOSPOTAL = 'hospital',
-}
 
 @Entity('places')
 class Place {

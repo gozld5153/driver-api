@@ -2,10 +2,17 @@ import express, { urlencoded } from 'express'
 import morgan from 'morgan'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
+import admin from 'firebase-admin'
 
-import mapRoute from './routes/map'
-import setupRoute from './routes/setup'
+import mapRoutes from './routes/map'
+import setupRoutes from './routes/setup'
 import dataSource from './db/data-source'
+import authRoutes from './routes/auth'
+
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
+})
 
 const app = express()
 
@@ -15,8 +22,9 @@ app.use(cookieParser())
 app.use(cors())
 app.use(urlencoded({ extended: false }))
 
-app.use('/map', mapRoute)
-app.use('/setup', setupRoute)
+app.use('/auth', authRoutes)
+app.use('/map', mapRoutes)
+app.use('/setup', setupRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT || 5030
