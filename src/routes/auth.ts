@@ -2,8 +2,8 @@ import express, { Request, Response } from 'express'
 import { userRepository } from '../db/repositories'
 import User from '../entities/User'
 import faker from '../lib/faker'
-import { Coord } from '../types/map'
-import { IspType, UserRole } from '../types/user'
+import { generateAccessToken, generateRefreshToken } from '../lib/helpers'
+import { LoginRequestDTO, LoginResponseDTO } from '../types/dto'
 
 const router = express.Router()
 
@@ -18,30 +18,44 @@ const register = async (_: Request, res: Response) => {
   }
 }
 
-type LoginDTO = {
-  role: UserRole
-  name: string
-  email: string
-  isp: IspType
-  ispId: string
-  ispProfileImage: string
-  coord: Coord
-}
 const login = async (req: Request, res: Response) => {
-  const { role, name, email, isp, ispId, ispProfileImage, coord }: LoginDTO = req.body
+  const { role, name, email, isp, ispId, profileImage, coord, pushToken }: LoginRequestDTO = req.body
   try {
     const existingUser = await userRepository.findOneBy({ role, isp, ispId })
 
     if (existingUser) {
-      // generate JWT
-      // return with JWT & profile
-      return res.json(existingUser)
+      const accessToken = generateAccessToken(existingUser)
+      const refreshToken = generateRefreshToken(existingUser)
+
+      return res.json({ id: existingUser.id, name, email, accessToken, refreshToken })
     }
-    const newUser = new User({ role, name, email, isp, ispId, ispProfileImage, coord })
+
+    const newUser = new User({
+      role,
+      name,
+      email,
+      isp,
+      ispId,
+      coord,
+      pushToken,
+      profileImage: profileImage ?? faker.image.avatar(),
+    })
 
     await userRepository.save(newUser)
 
-    return res.json(newUser)
+    const accessToken = generateAccessToken(newUser)
+    const refreshToken = generateRefreshToken(newUser)
+
+    const responseDTO: LoginResponseDTO = {
+      id: newUser.id,
+      name,
+      email,
+      accessToken,
+      refreshToken,
+      profileImage: newUser.profileImage,
+    }
+
+    return res.json(responseDTO)
   } catch (err) {
     console.log(err)
 

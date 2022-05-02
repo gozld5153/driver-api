@@ -30,14 +30,17 @@ class User {
   ispId?: string
 
   @Column({ nullable: true })
-  ispProfileImage?: string
+  profileImage?: string
 
   @Column({ type: 'simple-json', nullable: true })
   coord?: Coord
 
-  @Index({ spatial: true })
-  @Column({ type: 'point', spatialFeatureType: 'Point', srid: 4326 })
+  // @Index({ spatial: true })
+  @Column({ type: 'point', spatialFeatureType: 'Point', srid: 4326, nullable: true })
   location: string
+
+  @Column({ nullable: true })
+  pushToken: string
 
   @OneToMany(() => Order, order => order.driver)
   ordersAsDriver: Order[]
