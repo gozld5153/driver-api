@@ -14,7 +14,7 @@ export default new DataSource({
   database: process.env.DB_DATABASE,
   synchronize: false,
   logger: 'advanced-console',
-  logging: process.env.NODE_ENV === 'development',
+  logging: false, // process.env.NODE_ENV === 'development',
   entities: [rootDir + '/entities/**/*{.ts,.js}'],
   migrations: [rootDir + '/migrations/**/*{.ts,.js}'],
   subscribers: [rootDir + '/subscribers/**/*{.ts,.js}'],

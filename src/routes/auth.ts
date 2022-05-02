@@ -3,6 +3,7 @@ import { userRepository } from '../db/repositories'
 import User from '../entities/User'
 import faker from '../lib/faker'
 import { generateAccessToken, generateRefreshToken } from '../lib/helpers'
+import user from '../middlewares/user'
 import { LoginRequestDTO, LoginResponseDTO } from '../types/dto'
 
 const router = express.Router()
@@ -20,6 +21,8 @@ const register = async (_: Request, res: Response) => {
 
 const login = async (req: Request, res: Response) => {
   const { role, name, email, isp, ispId, profileImage, coord, pushToken }: LoginRequestDTO = req.body
+
+  console.log({ dto: req.body })
   try {
     const existingUser = await userRepository.findOneBy({ role, isp, ispId })
 
@@ -27,7 +30,7 @@ const login = async (req: Request, res: Response) => {
       const accessToken = generateAccessToken(existingUser)
       const refreshToken = generateRefreshToken(existingUser)
 
-      return res.json({ id: existingUser.id, name, email, accessToken, refreshToken })
+      return res.json({ id: existingUser.id, name, email, accessToken, refreshToken, profileImage })
     }
 
     const newUser = new User({
@@ -87,6 +90,25 @@ const phoneToken = async (req: Request, res: Response) => {
   }
 }
 
+const reportLocation = async (req: Request, res: Response) => {
+  const { latitude, longitude } = req.body
+  const user: User = res.locals.user
+
+  try {
+    user.coord = { latitude, longitude }
+    await userRepository.save(user)
+
+    console.log({ locationSavedUser: user })
+
+    return res.status(200)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+router.post('/report-location', user, reportLocation)
 router.get('/avatar', avatar)
 router.post('/register', register)
 router.post('/login', login)
