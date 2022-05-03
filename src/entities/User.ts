@@ -42,6 +42,9 @@ class User {
   @Column({ nullable: true })
   pushToken: string
 
+  @Column({ default: 'rest' })
+  status: 'rest' | 'ready' | 'working'
+
   @OneToMany(() => Order, order => order.driver)
   ordersAsDriver: Order[]
 

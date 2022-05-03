@@ -30,7 +30,14 @@ const login = async (req: Request, res: Response) => {
       const accessToken = generateAccessToken(existingUser)
       const refreshToken = generateRefreshToken(existingUser)
 
-      return res.json({ id: existingUser.id, name, email, accessToken, refreshToken, profileImage })
+      return res.json({
+        id: existingUser.id,
+        name: existingUser.name,
+        email: existingUser.email,
+        profileImage: existingUser.profileImage,
+        accessToken,
+        refreshToken,
+      })
     }
 
     const newUser = new User({
@@ -108,7 +115,25 @@ const reportLocation = async (req: Request, res: Response) => {
   }
 }
 
+const reportStatus = async (req: Request, res: Response) => {
+  const { status } = req.body
+  const user: User = res.locals.user
+  try {
+    user.status = status
+    await userRepository.save(user)
+
+    console.log({ user })
+
+    return res.status(200).json({ status })
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
 router.post('/report-location', user, reportLocation)
+router.post('/report-status', user, reportStatus)
 router.get('/avatar', avatar)
 router.post('/register', register)
 router.post('/login', login)
