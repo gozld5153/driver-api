@@ -8,6 +8,7 @@ import mapRoutes from './routes/map'
 import setupRoutes from './routes/setup'
 import dataSource from './db/data-source'
 import authRoutes from './routes/auth'
+import backdoorRoutes from './routes/backdoor'
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
@@ -25,6 +26,7 @@ app.use(urlencoded({ extended: false }))
 app.use('/auth', authRoutes)
 app.use('/map', mapRoutes)
 app.use('/setup', setupRoutes)
+app.use('/backdoor', backdoorRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT || 5030

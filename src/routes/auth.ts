@@ -174,9 +174,9 @@ const handleRefreshToken = async (req: Request, res: Response) => {
     const user = await userRepository.findOneBy({ id: payload.id })
     if (!user) throw new Error('cannot find user given token')
 
-    const { id, name, email, coord, profileImage } = user
+    const { id, name, email, coord, profileImage, status } = user
 
-    return res.json({ user: { id, name, email, coord, profileImage }, accessToken: generateAccessToken(user) })
+    return res.json({ user: { id, name, email, coord, profileImage, status }, accessToken: generateAccessToken(user) })
   } catch (err) {
     console.log(err)
 
