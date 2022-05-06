@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express'
+import express, { NextFunction, Request, Response } from 'express'
 import { userRepository } from '../db/repositories'
 import User from '../entities/User'
 import faker from '../lib/faker'
@@ -12,6 +12,17 @@ import { IspType, UserRole } from '../types/user'
 import cookie from 'cookie'
 
 const router = express.Router()
+
+const handleMe = async (_req: Request, res: Response) => {
+  const user: User = res.locals.user
+  try {
+    return res.json(user)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
 
 const register = async (_: Request, res: Response) => {
   // const { properties } = req.params
@@ -80,6 +91,7 @@ const login = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Something went wrong.' })
   }
 }
+
 const avatar = async (_: Request, res: Response) => {
   // const { properties } = req.params
   try {
@@ -187,61 +199,46 @@ const handleRefreshToken = async (req: Request, res: Response) => {
   }
 }
 
-router.post('/report-location', user, reportLocation)
-router.post('/report-status', user, reportStatus)
-router.get('/avatar', avatar)
-router.post('/register', register)
-router.post('/login', login)
-router.post('/phonetoken', phoneToken)
-router.post('/refresh-token', handleRefreshToken)
+const handleOauth = (req: Request, res: Response, next: NextFunction) => {
+  const { isp, role } = req.params
+  const options =
+    isp === 'google'
+      ? {
+          scope: ['https://www.googleapis.com/auth/plus.login', 'https://www.googleapis.com/auth/userinfo.email'],
+        }
+      : { session: false }
+  const oauthName = `${isp}-${role}`
 
-type oauthResult = {
-  email: string
-  name: string
-  profileImage: string
-  role: UserRole
-  isp: IspType
-  ispId: string
-  redirectURL: string
+  const handler = passport.authenticate(oauthName, options)
+  handler(req, res, next)
+}
+
+const handleOauthCallback = (req: Request, res: Response, next: NextFunction) => {
+  const { isp, role } = req.params
+  const options = { session: false }
+  const oauthName = `${isp}-${role}`
+
+  const handler = passport.authenticate(oauthName, options)
+  handler(req, res, next)
 }
 
 const oauthController = async (req: Request, res: Response) => {
+  type oauthResult = {
+    email: string
+    name: string
+    profileImage: string
+    role: UserRole
+    isp: IspType
+    ispId: string
+    redirectURL: string
+  }
+
   const { role, isp, ispId, email, name, profileImage, redirectURL } = req.user as oauthResult
 
-  console.log({ role, isp, ispId, email, name, profileImage, redirectURL })
-
   try {
-    const existingUser = await userRepository.findOneBy({ role, isp, ispId })
-
-    // user already existed
-    if (existingUser) {
-      console.log({ existingUser })
-      const accessToken = generateAccessToken(existingUser)
-      const refreshToken = generateRefreshToken(existingUser)
-
-      res.set('Set-Cookie', [
-        cookie.serialize('accessToken', accessToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          maxAge: 3600,
-          path: '/',
-        }),
-        cookie.serialize('refreshToken', refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          maxAge: 3600,
-          path: '/',
-        }),
-      ])
-
-      return res.redirect(redirectURL)
-    }
-
-    const user = new User({ role, isp, ispId, email, name, profileImage })
-    await userRepository.save(user)
-    console.log({ user })
+    const user =
+      (await userRepository.findOneBy({ role, isp, ispId })) ??
+      (await userRepository.save({ role, isp, ispId, email, name, profileImage }))
 
     const accessToken = generateAccessToken(user)
     const refreshToken = generateRefreshToken(user)
@@ -269,45 +266,37 @@ const oauthController = async (req: Request, res: Response) => {
   }
 }
 
-router.get(
-  '/google/hospital',
-  passport.authenticate('google-hospital', {
-    scope: ['https://www.googleapis.com/auth/plus.login', 'https://www.googleapis.com/auth/userinfo.email'],
-  }),
-)
-router.get('/google/hospital/callback', passport.authenticate('google-hospital', { session: false }), oauthController)
+const logout = (_: Request, res: Response) => {
+  res.set('Set-Cookie', [
+    cookie.serialize('accessToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      expires: new Date(0),
+    }),
+    cookie.serialize('refreshToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      expires: new Date(0),
+    }),
+  ])
 
-router.get(
-  '/google/agency',
-  passport.authenticate('google-agency', {
-    scope: ['https://www.googleapis.com/auth/plus.login', 'https://www.googleapis.com/auth/userinfo.email'],
-  }),
-)
-router.get('/google/agency/callback', passport.authenticate('google-agency', { session: false }), oauthController)
-
-router.get('/naver/hospital', passport.authenticate('naver-hospital', { session: false }))
-router.get('/naver/hospital/callback', passport.authenticate('naver-hospital', { session: false }), oauthController)
-
-router.get('/naver/agency', passport.authenticate('naver-agency', { session: false }))
-router.get('/naver/agency/callback', passport.authenticate('naver-agency', { session: false }), oauthController)
-
-router.get('/kakao/hospital', passport.authenticate('kakao-hospital', { session: false }))
-router.get('/kakao/hospital/callback', passport.authenticate('kakao-hospital', { session: false }), oauthController)
-
-router.get('/kakao/agency', passport.authenticate('kakao-agency', { session: false }))
-router.get('/kakao/agency/callback', passport.authenticate('kakao-agency', { session: false }), oauthController)
-
-const handleMe = async (_req: Request, res: Response) => {
-  const user: User = res.locals.user
-  try {
-    return res.json(user)
-  } catch (err) {
-    console.log(err)
-
-    return res.status(500).json({ error: 'Something went wrong.' })
-  }
+  return res.status(200).json({ success: true })
 }
 
 router.get('/me', user, handleMe)
+router.get('/logout', user, logout)
+router.post('/report-location', user, reportLocation)
+router.post('/report-status', user, reportStatus)
+router.get('/avatar', avatar)
+router.post('/register', register)
+router.post('/login', login)
+router.post('/phonetoken', phoneToken)
+router.post('/refresh-token', handleRefreshToken)
+router.get('/:isp/:role', handleOauth)
+router.get('/:isp/:role/callback', handleOauthCallback, oauthController)
 
 export default router
