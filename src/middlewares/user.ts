@@ -4,10 +4,11 @@ import { userRepository } from '../db/repositories'
 
 export default async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1] ?? req.cookies.token
-    if (!token) return next()
+    const accessToken = req.headers.authorization?.split(' ')[1] ?? req.cookies.accessToken
 
-    const payload: any = jwt.verify(token, process.env.JWT_SECRET!)
+    if (!accessToken) return next()
+
+    const payload: any = jwt.verify(accessToken, process.env.JWT_SECRET!)
     if (!payload) throw new Error('wrong token')
 
     if (!payload.id) throw new Error('cannot identify you. your token is not valid')

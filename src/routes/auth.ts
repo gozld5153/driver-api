@@ -7,6 +7,9 @@ import user from '../middlewares/user'
 import { LoginRequestDTO, LoginResponseDTO } from '../types/dto'
 import jwt from 'jsonwebtoken'
 import { messaging } from 'firebase-admin'
+import passport from 'passport'
+import { IspType, UserRole } from '../types/user'
+import cookie from 'cookie'
 
 const router = express.Router()
 
@@ -191,5 +194,120 @@ router.post('/register', register)
 router.post('/login', login)
 router.post('/phonetoken', phoneToken)
 router.post('/refresh-token', handleRefreshToken)
+
+type oauthResult = {
+  email: string
+  name: string
+  profileImage: string
+  role: UserRole
+  isp: IspType
+  ispId: string
+  redirectURL: string
+}
+
+const oauthController = async (req: Request, res: Response) => {
+  const { role, isp, ispId, email, name, profileImage, redirectURL } = req.user as oauthResult
+
+  console.log({ role, isp, ispId, email, name, profileImage, redirectURL })
+
+  try {
+    const existingUser = await userRepository.findOneBy({ role, isp, ispId })
+
+    // user already existed
+    if (existingUser) {
+      console.log({ existingUser })
+      const accessToken = generateAccessToken(existingUser)
+      const refreshToken = generateRefreshToken(existingUser)
+
+      res.set('Set-Cookie', [
+        cookie.serialize('accessToken', accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 3600,
+          path: '/',
+        }),
+        cookie.serialize('refreshToken', refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 3600,
+          path: '/',
+        }),
+      ])
+
+      return res.redirect(redirectURL)
+    }
+
+    const user = new User({ role, isp, ispId, email, name, profileImage })
+    await userRepository.save(user)
+    console.log({ user })
+
+    const accessToken = generateAccessToken(user)
+    const refreshToken = generateRefreshToken(user)
+
+    res.set('Set-Cookie', [
+      cookie.serialize('accessToken', accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 3600,
+        path: '/',
+      }),
+      cookie.serialize('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 3600,
+        path: '/',
+      }),
+    ])
+
+    return res.redirect(redirectURL)
+  } catch (error) {
+    return res.redirect(redirectURL)
+  }
+}
+
+router.get(
+  '/google/hospital',
+  passport.authenticate('google-hospital', {
+    scope: ['https://www.googleapis.com/auth/plus.login', 'https://www.googleapis.com/auth/userinfo.email'],
+  }),
+)
+router.get('/google/hospital/callback', passport.authenticate('google-hospital', { session: false }), oauthController)
+
+router.get(
+  '/google/agency',
+  passport.authenticate('google-agency', {
+    scope: ['https://www.googleapis.com/auth/plus.login', 'https://www.googleapis.com/auth/userinfo.email'],
+  }),
+)
+router.get('/google/agency/callback', passport.authenticate('google-agency', { session: false }), oauthController)
+
+router.get('/naver/hospital', passport.authenticate('naver-hospital', { session: false }))
+router.get('/naver/hospital/callback', passport.authenticate('naver-hospital', { session: false }), oauthController)
+
+router.get('/naver/agency', passport.authenticate('naver-agency', { session: false }))
+router.get('/naver/agency/callback', passport.authenticate('naver-agency', { session: false }), oauthController)
+
+router.get('/kakao/hospital', passport.authenticate('kakao-hospital', { session: false }))
+router.get('/kakao/hospital/callback', passport.authenticate('kakao-hospital', { session: false }), oauthController)
+
+router.get('/kakao/agency', passport.authenticate('kakao-agency', { session: false }))
+router.get('/kakao/agency/callback', passport.authenticate('kakao-agency', { session: false }), oauthController)
+
+const handleMe = async (_req: Request, res: Response) => {
+  const user: User = res.locals.user
+  try {
+    return res.json(user)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+router.get('/me', user, handleMe)
 
 export default router

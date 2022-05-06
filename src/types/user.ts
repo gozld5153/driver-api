@@ -2,6 +2,7 @@ export enum IspType {
   NAVER = 'naver',
   KAKAO = 'kakao',
   APPLE = 'apple',
+  GOOGLE = 'google',
   NONE = 'none',
 }
 

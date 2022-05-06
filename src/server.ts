@@ -9,6 +9,8 @@ import setupRoutes from './routes/setup'
 import dataSource from './db/data-source'
 import authRoutes from './routes/auth'
 import backdoorRoutes from './routes/backdoor'
+import passport from 'passport'
+import configureOAuth from './lib/oauthConfig'
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
@@ -20,8 +22,18 @@ const app = express()
 app.use(express.json())
 app.use(morgan('dev'))
 app.use(cookieParser())
-app.use(cors())
+app.use(
+  cors({
+    credentials: true,
+    origin: [process.env.HOSPITAL_URL!, process.env.AGENCY_URL!],
+    optionsSuccessStatus: 200, // default 204 no content
+  }),
+)
 app.use(urlencoded({ extended: false }))
+
+// oauth
+configureOAuth()
+app.use(passport.initialize())
 
 app.use('/auth', authRoutes)
 app.use('/map', mapRoutes)
@@ -29,14 +41,15 @@ app.use('/setup', setupRoutes)
 app.use('/backdoor', backdoorRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
-const PORT = process.env.PORT || 5030
+const PORT = process.env.PORT
+
 app.listen(PORT, async () => {
   try {
     await dataSource.initialize()
     console.log(`db connected at ${new Date()}`)
-
-    console.log(`server running at http://localhost:${PORT}`)
   } catch (error) {
     console.log({ startupError: error })
+  } finally {
+    console.log(`server running at http://localhost:${PORT}`)
   }
 })
