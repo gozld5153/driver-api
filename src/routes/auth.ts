@@ -1,16 +1,15 @@
 import express, { NextFunction, Request, Response } from 'express'
-import { userRepository } from '../db/repositories'
+import { organizationRepository, userRepository } from '../db/repositories'
 import User from '../entities/User'
 import faker from '../lib/faker'
 import { generateAccessToken, generateRefreshToken } from '../lib/helpers'
 import user from '../middlewares/user'
 import { LoginRequestDTO, LoginResponseDTO } from '../types/dto'
-import jwt from 'jsonwebtoken'
+import jwt, { TokenExpiredError } from 'jsonwebtoken'
 import { messaging } from 'firebase-admin'
 import passport from 'passport'
 import { IspType, UserRole } from '../types/user'
-import cookie from 'cookie'
-
+import auth from '../middlewares/auth'
 const router = express.Router()
 
 const handleMe = async (_req: Request, res: Response) => {
@@ -40,20 +39,20 @@ const login = async (req: Request, res: Response) => {
 
   console.log({ dto: req.body })
   try {
-    const existingUser = await userRepository.findOneBy({ role, isp, ispId })
+    const foundUser = await userRepository.findOneBy({ role, isp, ispId })
 
-    if (existingUser) {
-      const accessToken = generateAccessToken(existingUser)
-      const refreshToken = generateRefreshToken(existingUser)
+    if (foundUser) {
+      const accessToken = generateAccessToken(foundUser)
+      const refreshToken = generateRefreshToken(foundUser)
 
-      existingUser.pushToken = pushToken
-      await userRepository.save(existingUser)
+      foundUser.pushToken = pushToken
+      await userRepository.save(foundUser)
 
       return res.json({
-        id: existingUser.id,
-        name: existingUser.name,
-        email: existingUser.email,
-        profileImage: existingUser.profileImage,
+        id: foundUser.id,
+        name: foundUser.name,
+        email: foundUser.email,
+        profileImage: foundUser.profileImage,
         accessToken,
         refreshToken,
       })
@@ -178,6 +177,35 @@ const reportStatus = async (req: Request, res: Response) => {
   }
 }
 
+const handleWebRefreshToken = async (req: Request, res: Response) => {
+  try {
+    const token = req.cookies.refreshToken
+    if (!token) throw new Error('token is empty')
+
+    const payload: any = jwt.verify(token, process.env.JWT_REFRESH_SECRET!)
+    if (!payload || !payload.id) throw new Error('token is invalid')
+
+    const user = await userRepository.findOneBy({ id: payload.id })
+    if (!user) throw new Error('cannot find user given token')
+
+    return res.json(generateAccessToken(user))
+  } catch (err) {
+    console.log(err)
+
+    if (err instanceof TokenExpiredError) {
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+      })
+      return res.status(403).json({ error: err })
+    }
+
+    return res.status(403).json({ error: err })
+  }
+}
+
 const handleRefreshToken = async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '')
@@ -193,7 +221,9 @@ const handleRefreshToken = async (req: Request, res: Response) => {
 
     return res.json({ user: { id, name, email, coord, profileImage, status }, accessToken: generateAccessToken(user) })
   } catch (err) {
-    console.log(err)
+    console.log({ err })
+
+    if (err instanceof TokenExpiredError) return res.status(403).json({ error: err })
 
     return res.status(500).json({ error: 'Something went wrong.' })
   }
@@ -236,29 +266,34 @@ const oauthController = async (req: Request, res: Response) => {
   const { role, isp, ispId, email, name, profileImage, redirectURL } = req.user as oauthResult
 
   try {
-    const user =
-      (await userRepository.findOneBy({ role, isp, ispId })) ??
-      (await userRepository.save({ role, isp, ispId, email, name, profileImage }))
+    let user = await userRepository.findOneBy({ role, isp, ispId })
 
-    const accessToken = generateAccessToken(user)
+    if (!user) {
+      user = new User({ role, isp, ispId, email, name, profileImage })
+
+      console.log({ user })
+
+      const organization = await organizationRepository.save({
+        type: 'hospital',
+        name: faker.name.firstName() + '병원',
+      })
+
+      user.organization = organization
+
+      await userRepository.save(user)
+
+      console.log({ user, organization })
+    }
+
     const refreshToken = generateRefreshToken(user)
 
-    res.set('Set-Cookie', [
-      cookie.serialize('accessToken', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 3600,
-        path: '/',
-      }),
-      cookie.serialize('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 3600,
-        path: '/',
-      }),
-    ])
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60,
+      path: '/',
+    })
 
     return res.redirect(redirectURL)
   } catch (error) {
@@ -267,35 +302,30 @@ const oauthController = async (req: Request, res: Response) => {
 }
 
 const logout = (_: Request, res: Response) => {
-  res.set('Set-Cookie', [
-    cookie.serialize('accessToken', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      expires: new Date(0),
-    }),
-    cookie.serialize('refreshToken', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      expires: new Date(0),
-    }),
-  ])
+  res.clearCookie('refreshToken', {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+  })
 
   return res.status(200).json({ success: true })
 }
 
-router.get('/me', user, handleMe)
-router.get('/logout', user, logout)
-router.post('/report-location', user, reportLocation)
-router.post('/report-status', user, reportStatus)
-router.get('/avatar', avatar)
+router.get('/me', user, auth, handleMe)
+router.get('/refresh-token', handleWebRefreshToken)
+router.post('/refresh-token', handleRefreshToken)
+
 router.post('/register', register)
 router.post('/login', login)
+router.get('/logout', user, logout)
+
+router.post('/report-location', user, reportLocation)
+router.post('/report-status', user, reportStatus)
+
+router.get('/avatar', avatar)
 router.post('/phonetoken', phoneToken)
-router.post('/refresh-token', handleRefreshToken)
+
 router.get('/:isp/:role', handleOauth)
 router.get('/:isp/:role/callback', handleOauthCallback, oauthController)
 

@@ -4,6 +4,10 @@ import User from './User'
 
 @Entity('orders')
 class Order {
+  constructor(order?: Partial<Order>) {
+    if (order) Object.assign(this, order)
+  }
+
   @PrimaryGeneratedColumn()
   id: number
 
@@ -26,30 +30,30 @@ class Order {
   departure: Place
 
   @ManyToOne(() => Place, place => place.ordersAsArrival, { nullable: true })
-  arrival: Place
+  destination: Place
 
-  @Column()
+  @Column({ nullable: true })
   driverMatchedAt: Date
 
-  @Column()
+  @Column({ nullable: true })
   heroMatchedAt: Date
 
-  @Column()
-  heropickUpedAt: Date
+  @Column({ nullable: true })
+  heroPickUpedAt: Date
 
-  @Column()
+  @Column({ nullable: true })
   departedAt: Date
 
-  @Column()
+  @Column({ nullable: true })
   loadedAt: Date
 
-  @Column()
+  @Column({ nullable: true })
   arrivedAt: Date
 
-  @Column()
+  @Column({ nullable: true })
   feeCaculatedAt: Date
 
-  @Column()
+  @Column({ nullable: true })
   completedAt: Date
 }
 

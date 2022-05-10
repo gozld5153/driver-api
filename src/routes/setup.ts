@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express'
 import { placeRepository } from '../db/repositories'
+import Organization from '../entities/Organization'
 import Place from '../entities/Place'
 import faker from '../lib/faker'
 
@@ -8,9 +9,8 @@ const router = express.Router()
 const insertBulkplaces = async (req: Request, res: Response) => {
   const { quantity } = req.params
   try {
-    const places = await getBulkPlaces(parseInt(quantity))
+    const places = await createBulkPlaces(parseInt(quantity))
 
-    // await Place.save(places, { chunk: places.length / 1000 })
     await placeRepository.save(places)
 
     return res.send(places)
@@ -25,21 +25,33 @@ router.get('/bulk/:quantity', insertBulkplaces)
 
 export default router
 
-async function getBulkPlaces(howmany: number) {
+async function createBulkPlaces(quantity: number) {
   const places: Place[] = []
-  for (let i = 0; i < howmany; i++) {
-    const newSpot = getRandomSpot()
-    const place = new Place()
-    place.longitude = newSpot.longitude
-    place.latitude = newSpot.latitude
-    place.name = faker.name.firstName() + '병원'
+
+  for (let i = 0; i < quantity; i++) {
+    const coord = getRandomCoord()
+
+    const name = faker.name.firstName() + '병원'
+
+    const organization = new Organization({
+      type: 'hospital',
+      name,
+    })
+
+    const place = new Place({
+      longitude: coord.longitude,
+      latitude: coord.latitude,
+      name,
+      organization,
+    })
+
     places.push(place)
   }
 
   return places
 }
 
-function getRandomSpot() {
+function getRandomCoord() {
   const minX = 126.72182081983624
   const minY = 36.891665362714306
   const maxX = 127.25712426219445

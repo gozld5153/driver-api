@@ -5,6 +5,8 @@ import cookieParser from 'cookie-parser'
 import admin from 'firebase-admin'
 
 import mapRoutes from './routes/map'
+import orderRoutes from './routes/order'
+import placesRoutes from './routes/places'
 import setupRoutes from './routes/setup'
 import dataSource from './db/data-source'
 import authRoutes from './routes/auth'
@@ -39,6 +41,8 @@ app.use('/auth', authRoutes)
 app.use('/map', mapRoutes)
 app.use('/setup', setupRoutes)
 app.use('/backdoor', backdoorRoutes)
+app.use('/places', placesRoutes)
+app.use('/order', orderRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT

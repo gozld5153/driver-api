@@ -1,9 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Index,
+  BeforeInsert,
+  BeforeUpdate,
+  OneToMany,
+  ManyToOne,
+} from 'typeorm'
 import { PlaceType } from '../types/map'
 import Order from './Order'
+import Organization from './Organization'
 
 @Entity('places')
 class Place {
+  constructor(place?: Partial<Place>) {
+    if (place) Object.assign(this, place)
+  }
+
   @PrimaryGeneratedColumn()
   id: number
 
@@ -26,8 +40,11 @@ class Place {
   @OneToMany(() => Order, order => order.departure, { nullable: true })
   ordersAsDepature: Order[]
 
-  @OneToMany(() => Order, order => order.arrival, { nullable: true })
+  @OneToMany(() => Order, order => order.destination, { nullable: true })
   ordersAsArrival: Order[]
+
+  @ManyToOne(() => Organization, organization => organization.places, { cascade: ['insert'], nullable: true })
+  organization: Organization
 
   @BeforeInsert()
   @BeforeUpdate()

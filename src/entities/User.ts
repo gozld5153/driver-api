@@ -1,11 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, Index, BeforeInsert, BeforeUpdate } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  Index,
+  BeforeInsert,
+  BeforeUpdate,
+  ManyToOne,
+} from 'typeorm'
 import { Coord } from '../types/map'
 import { IspType, UserRole } from '../types/user'
 import Order from './Order'
+import Organization from './Organization'
 @Entity('users')
 class User {
-  constructor(user: Partial<User>) {
-    Object.assign(this, user)
+  constructor(user?: Partial<User>) {
+    if (user) Object.assign(this, user)
   }
 
   @PrimaryGeneratedColumn()
@@ -53,6 +63,9 @@ class User {
 
   @OneToMany(() => Order, order => order.client)
   ordersAsClient: Order[]
+
+  @ManyToOne(() => Organization, organization => organization.users, { cascade: ['insert'] })
+  organization: Organization
 
   @BeforeInsert()
   @BeforeUpdate()
