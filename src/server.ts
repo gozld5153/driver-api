@@ -3,15 +3,17 @@ import morgan from 'morgan'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import admin from 'firebase-admin'
+import passport from 'passport'
+import dotenv from 'dotenv'
+dotenv.config()
 
+import dataSource from './db/data-source'
 import mapRoutes from './routes/map'
 import orderRoutes from './routes/order'
 import placesRoutes from './routes/places'
 import setupRoutes from './routes/setup'
-import dataSource from './db/data-source'
 import authRoutes from './routes/auth'
 import backdoorRoutes from './routes/backdoor'
-import passport from 'passport'
 import configureOAuth from './lib/oauthConfig'
 
 admin.initializeApp({

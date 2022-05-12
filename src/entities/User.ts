@@ -10,6 +10,7 @@ import {
 } from 'typeorm'
 import { Coord } from '../types/map'
 import { IspType, UserRole } from '../types/user'
+import Offer from './Offer'
 import Order from './Order'
 import Organization from './Organization'
 @Entity('users')
@@ -66,6 +67,9 @@ class User {
 
   @ManyToOne(() => Organization, organization => organization.users, { cascade: ['insert'] })
   organization: Organization
+
+  @OneToMany(() => Offer, offer => offer.user)
+  offers: Offer[]
 
   @BeforeInsert()
   @BeforeUpdate()

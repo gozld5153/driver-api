@@ -1,4 +1,13 @@
-import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm'
+import Offer from './Offer'
 import Place from './Place'
 import User from './User'
 
@@ -19,6 +28,9 @@ class Order {
 
   @ManyToOne(() => User, user => user.ordersAsClient, { nullable: true })
   client: User
+
+  @OneToMany(() => Offer, offer => offer.order)
+  offers: Offer[]
 
   @CreateDateColumn()
   createdAt: Date
