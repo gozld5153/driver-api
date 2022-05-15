@@ -5,8 +5,10 @@ import { offerRepository, orderRepository, userRepository } from '../db/reposito
 import Offer, { OfferStatus } from '../entities/Offer'
 import Order from '../entities/Order'
 import User from '../entities/User'
+import { getRouteFromCoords } from '../lib/helpers'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
+import keyValStore from '../services/keyValStore'
 import { UserRole } from '../types/user'
 
 const router = express.Router()
@@ -32,6 +34,11 @@ const handleOrderRequest = async (req: Request, res: Response) => {
     const offer = new Offer({ order, type: driver.role, user: driver, status: OfferStatus.PENDING })
     offer.order = order
     await offerRepository.save(offer) // order will be saved in cascade manner
+
+    //#region route
+    const routes = await getRouteFromCoords(departure, destination)
+    await keyValStore.set(String(order.id), routes)
+    //#endregion
 
     // send offer id to driver via push and check offer status after 2000 sec
     await notifyOfferThenCheckIt({
@@ -80,7 +87,7 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
 }
 
 type NotifyOfferThenCheckItType = { offerId: number; token: string; title: string; body: string; timeout?: number }
-const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 10000 }: NotifyOfferThenCheckItType) => {
+const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 20000 }: NotifyOfferThenCheckItType) => {
   const pushResult = await notifyByPush({
     token,
     notification: {
@@ -119,35 +126,37 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
         offer.status = OfferStatus.TIMEOUT
         await offerRepository.save(offer)
 
-        // TODO: 타임아웃되었다고 해당 드라이버에게 푸시로 알려줌
+        // TODO: 타임아웃되었다고 해당 드라이버|히어로에게 푸시로 알려줌
         await notifyByPush({
           token: offer.user?.pushToken,
           data: { timeoutOfferId: String(offer.id) },
           notification: { title: '시간초과로 취소되었습니다.', body: `offerId: ${offer.id}` },
         })
 
-        const driverIds = offer.order.offers.filter(of => of.type === offer.type).map(offer => offer.user.id)
-        console.log({ drivers: driverIds })
+        const workerIds = offer.order.offers.filter(of => of.type === offer.type).map(offer => offer.user.id)
+        console.log({ workers: workerIds })
 
-        // find other driver and push
-        const driver: (User & { distance: number }) | undefined = await userRepository
+        // find other worker (driver or hero) and push
+        const worker: (User & { distance: number }) | undefined = await userRepository
           .createQueryBuilder()
           .select(
             `*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`,
           )
-          .where('role=:role', { role: UserRole.DRIVER })
-          .andWhere('status=:status', { status: 'ready' })
-          .andWhere({ id: Not(In(driverIds)) })
+          .where({
+            role: offer.user.role,
+            status: 'ready',
+            id: Not(In(workerIds)),
+          })
           .orderBy('distance')
           .getRawOne()
-        if (!driver?.pushToken) throw new Error('no driver available')
+        if (!worker?.pushToken) throw new Error('no worker available')
 
-        const newOffer = new Offer({ order: offer.order, type: driver.role, user: driver, status: OfferStatus.PENDING })
+        const newOffer = new Offer({ order: offer.order, type: worker.role, user: worker, status: OfferStatus.PENDING })
         await offerRepository.save(newOffer)
 
         await notifyOfferThenCheckIt({
           offerId: newOffer.id,
-          token: driver.pushToken,
+          token: worker.pushToken,
           title: '이송 요청',
           body: `${newOffer.order.departure.name}에서 이송을 요청했습니다.`,
         })
@@ -184,11 +193,14 @@ const handleOfferResponse = async (req: Request, res: Response) => {
     const { response, offerId } = req.body
     if (!response || !offerId) throw new Error('response, offerId is mandatory')
 
+    const user: User = res.locals.user
+
     const offer = await offerRepository.findOneOrFail({
       where: {
         id: offerId,
       },
       relations: {
+        user: true,
         order: {
           destination: true,
           departure: true,
@@ -199,41 +211,56 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       },
     })
 
-    if (response === 'reject' && offer.type === UserRole.DRIVER) {
+    if (response === 'reject') {
       offer.status = OfferStatus.REJECTED
       await offerRepository.save(offer)
 
-      const driverIds = offer.order.offers.filter(of => of.type === offer.type).map(of => of.user.id)
-      console.log({ drivers: driverIds })
+      const workerIds = offer.order.offers.filter(of => of.type === offer.type).map(of => of.user.id)
+      console.log({ workers: workerIds })
 
       // find other driver and push
-      const driver: (User & { distance: number }) | undefined = await userRepository
+      const worker: (User & { distance: number }) | undefined = await userRepository
         .createQueryBuilder()
         .select(`*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`)
-        .where('role=:role', { role: UserRole.DRIVER })
-        .andWhere('status=:status', { status: 'ready' })
-        .andWhere({ id: Not(In(driverIds)) })
+        .where({
+          role: offer.user.role,
+          status: 'ready',
+          id: Not(In(workerIds)),
+        })
         .orderBy('distance')
         .getRawOne()
-      if (!driver?.pushToken) return res.json({ message: 'no driver available' })
+      if (!worker?.pushToken) return res.json({ success: true, offerId, message: 'no worker available' })
 
       const newOffer = new Offer({
         order: offer.order,
-        type: driver.role,
-        user: driver,
+        type: worker.role,
+        user: worker,
         status: OfferStatus.PENDING,
       })
       await offerRepository.save(newOffer)
 
       await notifyOfferThenCheckIt({
         offerId: newOffer.id,
-        token: driver.pushToken,
+        token: worker.pushToken,
         title: '이송 요청',
         body: `${newOffer.order.departure.name}에서 이송을 요청했습니다.`,
       })
+
+      return res.status(200).send({ success: true, offerId, message: `you rejected order: ${offerId}` })
     }
 
-    return res.status(200).send({ success: true, offerId, message: `you rejected order: ${offerId}` })
+    if (response === 'accept') {
+      offer.status = OfferStatus.ACCEPTED
+
+      if (user.role === UserRole.DRIVER) offer.order.driver = user
+      if (user.role === UserRole.HERO) offer.order.hero = user
+
+      await offerRepository.save(offer)
+
+      return res.status(200).send({ success: true, offerId, message: `you accepted order: ${offerId}` })
+    }
+
+    return res.status(204).send()
   } catch (err) {
     console.log(err)
 
@@ -261,12 +288,56 @@ const handleGetOffer = async (req: Request, res: Response) => {
         order: {
           departure: true,
           destination: true,
+          driver: true,
+          hero: true,
         },
       },
     })
     if (!offer) throw new Error('cannot find offer')
 
-    return res.json(offer)
+    // route
+    const routeData = await keyValStore.get(String(offer.order.id))
+
+    return res.json({ offer, routeData })
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+const handleHeroRequest = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.body
+    const driver: User = res.locals.user
+
+    if (!orderId) throw new Error('orderId is mandatory')
+
+    const order = await orderRepository.findOneOrFail({ where: { id: orderId }, relations: { departure: true } })
+    const hero = await userRepository
+      .createQueryBuilder()
+      .select(`*, st_distance_sphere(location, st_geomfromtext('${order.departure?.point}', 4326)) as distance`)
+      .where({
+        role: UserRole.HERO,
+        status: 'ready',
+      })
+      .orderBy('distance')
+      .getRawOne()
+    if (!hero?.pushToken) throw new Error('no hero available')
+
+    const offer = new Offer({ order, type: hero.role, user: hero, status: OfferStatus.PENDING })
+    await offerRepository.save(offer)
+
+    // notify offer to hero
+    await notifyOfferThenCheckIt({
+      offerId: offer.id,
+      token: hero.pushToken,
+      title: '출동 요청',
+      body: `${driver.name}께서 ${order.departure.name} 출발 건을 요청했습니다.`,
+      timeout: 20000,
+    })
+
+    return res.json({ success: true, message: 'hero request is processing', hero: hero.id })
   } catch (err) {
     console.log(err)
 
@@ -278,6 +349,7 @@ const handleGetOffer = async (req: Request, res: Response) => {
 router.post('/request', user, auth, handleOrderRequest)
 router.get('/offer/:id', user, auth, handleGetOffer)
 router.post('/offer/response', user, auth, handleOfferResponse)
+router.post('/hero', user, auth, handleHeroRequest)
 
 router.get('/:id', user, auth, getOrder)
 

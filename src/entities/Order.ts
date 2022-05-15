@@ -1,4 +1,5 @@
 import {
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -67,6 +68,12 @@ class Order {
 
   @Column({ nullable: true })
   completedAt: Date
+
+  @BeforeUpdate()
+  recordMatchTime() {
+    if (this.driver) this.driverMatchedAt = new Date()
+    if (this.hero) this.heroMatchedAt = new Date()
+  }
 }
 
 export default Order
