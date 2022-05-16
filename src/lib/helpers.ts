@@ -13,17 +13,17 @@ export const generateAccessToken = (user: User) =>
 
 type arrCoord = [number, number]
 export const getRouteFromCoords = async (departure: Coord, destination: Coord) => {
-  const response = await axios.get(
-    `https://naveropenapi.apigw.ntruss.com/map-direction/v1/driving?start=${departure.longitude},${departure.latitude}&goal=${destination.longitude},${destination.latitude}`,
-    {
-      headers: {
-        'X-NCP-APIGW-API-KEY-ID': process.env.NCP_CLIENT_ID!,
-        'X-NCP-APIGW-API-KEY': process.env.NCP_CLIENT_SECRET!,
-      },
+  const url = `https://naveropenapi.apigw.ntruss.com/map-direction/v1/driving?start=${departure.longitude},${departure.latitude}&goal=${destination.longitude},${destination.latitude}`
+  console.log(url)
+  const response = await axios.get(url, {
+    headers: {
+      'X-NCP-APIGW-API-KEY-ID': process.env.NCP_CLIENT_ID!,
+      'X-NCP-APIGW-API-KEY': process.env.NCP_CLIENT_SECRET!,
     },
-  )
+  })
   if (response.status === 200 && response.data.code === 0) {
-    const bbox: [arrCoord, arrCoord] = response.data.route.traoptimal[0].summary.bbox
+    const { bbox, distance, duration }: { bbox: [arrCoord, arrCoord]; distance: number; duration: number } =
+      response.data.route?.traoptimal[0]?.summary
 
     const minCoord = { latitude: bbox[0][1], longitude: bbox[0][0] }
     const maxCoord = { latitude: bbox[1][1], longitude: bbox[1][0] }
@@ -35,7 +35,7 @@ export const getRouteFromCoords = async (departure: Coord, destination: Coord) =
       longitude: path[0],
     }))
 
-    return { route, boundPoints }
+    return { route, boundPoints, distance, duration }
   }
 
   return null

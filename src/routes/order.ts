@@ -9,6 +9,7 @@ import { getRouteFromCoords } from '../lib/helpers'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
 import keyValStore from '../services/keyValStore'
+import { Coord } from '../types/map'
 import { UserRole } from '../types/user'
 
 const router = express.Router()
@@ -37,7 +38,7 @@ const handleOrderRequest = async (req: Request, res: Response) => {
 
     //#region route
     const routes = await getRouteFromCoords(departure, destination)
-    await keyValStore.set(String(order.id), routes)
+    if (routes) await keyValStore.set(String(order.id), routes)
     //#endregion
 
     // send offer id to driver via push and check offer status after 2000 sec
@@ -295,8 +296,24 @@ const handleGetOffer = async (req: Request, res: Response) => {
     })
     if (!offer) throw new Error('cannot find offer')
 
+    type RouteData = {
+      route: Coord[]
+      boundPoints: {
+        minCoord: {
+          latitude: number
+          longitude: number
+        }
+        maxCoord: {
+          latitude: number
+          longitude: number
+        }
+      }
+      distance: number
+      duration: number
+    }
+
     // route
-    const routeData = await keyValStore.get(String(offer.order.id))
+    const routeData: RouteData = await keyValStore.get(String(offer.order.id))
 
     return res.json({ offer, routeData })
   } catch (err) {
