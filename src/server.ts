@@ -4,8 +4,8 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import admin from 'firebase-admin'
 import passport from 'passport'
-import dotenv from 'dotenv'
-dotenv.config()
+// import dotenv from 'dotenv'
+// dotenv.config()
 
 import dataSource from './db/data-source'
 import mapRoutes from './routes/map'

@@ -12,5 +12,6 @@ export enum UserRole {
   AGENCY = 'agency',
   CLIENT = 'client',
   CLIENT_MANAGER = 'client-manager',
+  CLIENT_PUBLIC = 'client-public',
   NONE = 'none',
 }

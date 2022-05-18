@@ -23,17 +23,6 @@ const handleMe = async (_req: Request, res: Response) => {
   }
 }
 
-const register = async (_: Request, res: Response) => {
-  // const { properties } = req.params
-  try {
-    return res.send('register')
-  } catch (err) {
-    console.log(err)
-
-    return res.status(500).json({ error: 'Something went wrong.' })
-  }
-}
-
 const login = async (req: Request, res: Response) => {
   const { role, name, email, isp, ispId, profileImage, coord, pushToken }: LoginRequestDTO = req.body
 
@@ -45,8 +34,10 @@ const login = async (req: Request, res: Response) => {
       const accessToken = generateAccessToken(foundUser)
       const refreshToken = generateRefreshToken(foundUser)
 
-      foundUser.pushToken = pushToken
-      await userRepository.save(foundUser)
+      if (pushToken) {
+        foundUser.pushToken = pushToken
+        await userRepository.save(foundUser)
+      }
 
       return res.json({
         id: foundUser.id,
@@ -140,6 +131,8 @@ const reportStatus = async (req: Request, res: Response) => {
   try {
     user.status = status
     await userRepository.save(user)
+
+    console.log(user.pushToken)
 
     if (user.pushToken) {
       const result = await messaging().send({
@@ -287,6 +280,8 @@ const oauthController = async (req: Request, res: Response) => {
 
     const refreshToken = generateRefreshToken(user)
 
+    console.log({ refreshToken })
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       sameSite: 'strict',
@@ -316,7 +311,6 @@ router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
 
-router.post('/register', register)
 router.post('/login', login)
 router.get('/logout', user, logout)
 

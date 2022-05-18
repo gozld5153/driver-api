@@ -8,6 +8,7 @@ import {
   BeforeUpdate,
   ManyToOne,
 } from 'typeorm'
+import bcrypt from 'bcrypt'
 import { Coord } from '../types/map'
 import { IspType, UserRole } from '../types/user'
 import Offer from './Offer'
@@ -39,6 +40,12 @@ class User {
   @Index()
   @Column({ nullable: true })
   ispId?: string
+
+  @Column()
+  identifier?: string
+
+  @Column()
+  password?: string
 
   @Column({ nullable: true })
   profileImage?: string
@@ -75,6 +82,12 @@ class User {
   @BeforeUpdate()
   convertCoordToPoint() {
     if (this.coord && this.coord?.latitude) this.location = `POINT(${this.coord.latitude} ${this.coord.longitude})`
+  }
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  async hashPassword() {
+    if (this.password) this.password = await bcrypt.hash(this.password, 6)
   }
 }
 

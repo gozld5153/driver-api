@@ -30,6 +30,8 @@ const handleOrderRequest = async (req: Request, res: Response) => {
       .getRawOne()
     if (!driver?.pushToken) throw new Error('no driver available')
 
+    console.log(driver.pushToken)
+
     // make new order, offer
     const order = new Order({ client: user, destination, departure })
     const offer = new Offer({ order, type: driver.role, user: driver, status: OfferStatus.PENDING })
