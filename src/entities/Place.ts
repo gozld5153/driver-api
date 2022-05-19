@@ -37,6 +37,12 @@ class Place {
   @Column({ type: 'point', spatialFeatureType: 'Point', srid: 4326 })
   point: string
 
+  @Column({ nullable: true })
+  address: string
+
+  @Column({ nullable: true })
+  roadAdress: string
+
   @OneToMany(() => Order, order => order.departure, { nullable: true })
   ordersAsDepature: Order[]
 

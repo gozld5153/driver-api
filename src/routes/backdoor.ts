@@ -24,7 +24,8 @@ const getUsers = async (_req: Request, res: Response) => {
 const getClients = async (_req: Request, res: Response) => {
   try {
     const clients = await userRepository.find({
-      where: { role: UserRole.CLIENT },
+      where: [{ role: UserRole.CLIENT }, { role: UserRole.CLIENT_PUBLIC }],
+      order: { id: 'desc' },
       relations: {
         ordersAsClient: true,
         organization: true,
@@ -38,9 +39,49 @@ const getClients = async (_req: Request, res: Response) => {
   }
 }
 
+const getDrivers = async (_req: Request, res: Response) => {
+  try {
+    const drivers = await userRepository.find({
+      where: { role: UserRole.DRIVER },
+      order: { id: 'desc' },
+      relations: {
+        ordersAsDriver: true,
+        organization: true,
+      },
+    })
+    return res.json(drivers)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+const getHeros = async (_req: Request, res: Response) => {
+  try {
+    const heros = await userRepository.find({
+      where: { role: UserRole.HERO },
+      order: { id: 'desc' },
+      relations: {
+        ordersAsHero: true,
+        organization: true,
+      },
+    })
+    return res.json(heros)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
 const getOrganization = async (_req: Request, res: Response) => {
   try {
-    const organizations = await organizationRepository.find({ relations: { users: true, places: true } })
+    const organizations = await organizationRepository.find({
+      relations: { users: true, places: true },
+      order: {
+        id: 'DESC',
+      },
+    })
 
     return res.json(organizations)
   } catch (err) {
@@ -52,7 +93,14 @@ const getOrganization = async (_req: Request, res: Response) => {
 
 const getPlaces = async (_req: Request, res: Response) => {
   try {
-    const places = await placeRepository.find()
+    const places = await placeRepository.find({
+      order: { id: 'desc' },
+      relations: {
+        organization: true,
+        ordersAsArrival: true,
+        ordersAsDepature: true,
+      },
+    })
 
     return res.json(places)
   } catch (err) {
@@ -64,7 +112,18 @@ const getPlaces = async (_req: Request, res: Response) => {
 
 const getOrders = async (_req: Request, res: Response) => {
   try {
-    const orders = await orderRepository.find()
+    const orders = await orderRepository.find({
+      relations: {
+        client: {
+          organization: true,
+        },
+        departure: true,
+        destination: true,
+        offers: {
+          user: true,
+        },
+      },
+    })
 
     return res.json(orders)
   } catch (err) {
@@ -91,6 +150,8 @@ router.get('/organizations', getOrganization)
 router.get('/Places', getPlaces)
 router.get('/users', getUsers)
 router.get('/clients', getClients)
+router.get('/drivers', getDrivers)
+router.get('/heros', getHeros)
 router.get('/orders', getOrders)
 router.get('/offers', getOffers)
 

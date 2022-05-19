@@ -10,6 +10,11 @@ import { messaging } from 'firebase-admin'
 import passport from 'passport'
 import { IspType, UserRole } from '../types/user'
 import auth from '../middlewares/auth'
+import Organization from '../entities/Organization'
+import bcrypt from 'bcrypt'
+import BadRequestError from '../errors/BadRequestError'
+import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
+
 const router = express.Router()
 
 const handleMe = async (_req: Request, res: Response) => {
@@ -264,23 +269,17 @@ const oauthController = async (req: Request, res: Response) => {
     if (!user) {
       user = new User({ role, isp, ispId, email, name, profileImage })
 
-      console.log({ user })
+      // const organization = await organizationRepository.save({
+      //   type: 'hospital',
+      //   name: faker.name.firstName() + '병원',
+      // })
 
-      const organization = await organizationRepository.save({
-        type: 'hospital',
-        name: faker.name.firstName() + '병원',
-      })
-
-      user.organization = organization
+      // user.organization = organization
 
       await userRepository.save(user)
-
-      console.log({ user, organization })
     }
 
     const refreshToken = generateRefreshToken(user)
-
-    console.log({ refreshToken })
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
@@ -307,12 +306,82 @@ const logout = (_: Request, res: Response) => {
   return res.status(200).json({ success: true })
 }
 
+const registerPublicClient = async (req: Request, res: Response) => {
+  try {
+    const { id, password, name, organization } = req.body
+    if (!id || !password || !name || !organization) throw new Error('id, password, name, organization is mandatory')
+
+    const foundUser = await userRepository.findOneBy({ identifier: id })
+    if (foundUser) throw new Error('There is a public user with given id')
+
+    const foundOrganization = await organizationRepository.findOneBy({ name: organization })
+    if (foundOrganization) throw new Error('There is a organization with given name')
+
+    const newOrganization = new Organization({ name: organization, type: 'hospital' })
+    const user = new User({
+      identifier: id,
+      password,
+      name,
+      organization: newOrganization,
+      profileImage:
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRgWO8d-CFmENoZg_EF8TlBJ8PDS1PLqyDPFA&usqp=CAU',
+      role: UserRole.CLIENT_PUBLIC,
+    })
+    await userRepository.save(user)
+
+    return res.json(user)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: err.message ?? 'Something went wrong.' })
+  }
+}
+
+const loginPublicClient = async (req: Request, res: Response) => {
+  try {
+    const { id, password } = req.body
+    if (!id || !password) throw new BadRequestError('id, password is mandatory')
+
+    const user = await userRepository.findOneOrFail({
+      where: { identifier: id },
+      relations: {
+        organization: {
+          places: true,
+        },
+        ordersAsClient: true,
+      },
+    })
+    const match = await bcrypt.compare(password, user.password!)
+    if (!match) throw new BadRequestError('wrong password')
+
+    const accessToken = generateAccessToken(user)
+    const refreshToken = generateRefreshToken(user)
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60,
+      path: '/',
+    })
+
+    return res.json({ user, accessToken })
+  } catch (err) {
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
 
+// for mobile
 router.post('/login', login)
 router.get('/logout', user, logout)
+
+// for public client
+router.post('/public-register', registerPublicClient)
+router.post('/public-login', loginPublicClient)
 
 router.post('/report-location', user, reportLocation)
 router.post('/report-status', user, reportStatus)
@@ -320,6 +389,7 @@ router.post('/report-status', user, reportStatus)
 router.get('/avatar', avatar)
 router.post('/phonetoken', phoneToken)
 
+// for web oauth
 router.get('/:isp/:role', handleOauth)
 router.get('/:isp/:role/callback', handleOauthCallback, oauthController)
 

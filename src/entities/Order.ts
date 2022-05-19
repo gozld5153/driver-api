@@ -12,6 +12,19 @@ import Offer from './Offer'
 import Place from './Place'
 import User from './User'
 
+export enum OrderStatus {
+  PENDING = 'pending',
+  DRIVER_MATCHED = 'driver-matched',
+  HERO_MATCHED = 'hero-matched',
+  HERO_PICKUPED = 'hero-pickuped',
+  LOADED = 'loaded',
+  DEPARTED = 'departed',
+  ARRIVED = 'arrived',
+  FEE_CALCULATED = 'fee-calculated',
+  COMPLETED = 'completed',
+  CANCELLED = 'canceled',
+}
+
 @Entity('orders')
 class Order {
   constructor(order?: Partial<Order>) {
@@ -68,6 +81,33 @@ class Order {
 
   @Column({ nullable: true })
   completedAt: Date
+
+  @Column()
+  clientPhoneNumber: string
+
+  @Column({ nullable: true })
+  patientName: string
+
+  @Column({ nullable: true })
+  patientPhoneNumber: string
+
+  @Column({ nullable: true })
+  companionName: string
+
+  @Column({ nullable: true })
+  companionPhoneNumber: string
+
+  @Column({ nullable: true })
+  description: string
+
+  @Column({ nullable: true })
+  gear: string
+
+  @Column({ nullable: true })
+  etc: string
+
+  @Column({ type: 'enum', enum: OrderStatus })
+  status: OrderStatus
 
   @BeforeUpdate()
   recordMatchTime() {

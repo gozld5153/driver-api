@@ -1,10 +1,13 @@
 import express, { Request, Response } from 'express'
 import { messaging } from 'firebase-admin'
 import { In, Not } from 'typeorm'
-import { offerRepository, orderRepository, userRepository } from '../db/repositories'
+import { offerRepository, orderRepository, placeRepository, userRepository } from '../db/repositories'
 import Offer, { OfferStatus } from '../entities/Offer'
-import Order from '../entities/Order'
+import { OrderStatus } from '../entities/Order'
+import Place from '../entities/Place'
 import User from '../entities/User'
+import BadRequestError from '../errors/BadRequestError'
+import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import { getRouteFromCoords } from '../lib/helpers'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
@@ -16,11 +19,47 @@ const router = express.Router()
 
 const handleOrderRequest = async (req: Request, res: Response) => {
   try {
-    const { destination, departure } = req.body
+    const {
+      destination: d2,
+      departure: d1,
+      phoneNumber: clientPhoneNumber,
+      patientName,
+      patientPhoneNumber,
+      companionName,
+      companionPhoneNumber,
+      description,
+      gear,
+      etc,
+    } = req.body
     const user: User = res.locals.user
-    if (!destination || !departure) throw new Error('destination, departure is mandatory')
+    if (!d2 || !d1 || !clientPhoneNumber) throw new BadRequestError('destination, departure, phoneNumber is mandatory')
 
-    // find driver nearest to departure
+    const departure = d1.id
+      ? await placeRepository.findOneByOrFail({ id: d1.id })
+      : await placeRepository.save(new Place(d1))
+
+    const destination = d2.id
+      ? await placeRepository.findOneByOrFail({ id: d1.id })
+      : await placeRepository.save(new Place(d2))
+
+    const order = await orderRepository.save({
+      client: user,
+      destination,
+      departure,
+      clientPhoneNumber,
+      patientName,
+      patientPhoneNumber,
+      companionName,
+      companionPhoneNumber,
+      description,
+      gear,
+      etc,
+      status: OrderStatus.PENDING,
+    })
+
+    const routes = await getRouteFromCoords(departure, destination)
+    if (routes) await keyValStore.set(String(order.id), routes)
+
     const driver: (User & { distance: number }) | undefined = await userRepository
       .createQueryBuilder()
       .select(`*, st_distance_sphere(location, st_geomfromtext('${departure?.point}', 4326)) as distance`)
@@ -28,20 +67,16 @@ const handleOrderRequest = async (req: Request, res: Response) => {
       .andWhere('status=:status', { status: 'ready' })
       .orderBy('distance')
       .getRawOne()
-    if (!driver?.pushToken) throw new Error('no driver available')
 
-    console.log(driver.pushToken)
+    if (!driver?.pushToken) {
+      // TODO: driver가 없다는 것을 client에게 알림
+      // TODO: 주기적으로 이 order 처리할 드라이버 찾아서 처리
+      return res.json(order)
+    }
 
-    // make new order, offer
-    const order = new Order({ client: user, destination, departure })
     const offer = new Offer({ order, type: driver.role, user: driver, status: OfferStatus.PENDING })
     offer.order = order
-    await offerRepository.save(offer) // order will be saved in cascade manner
-
-    //#region route
-    const routes = await getRouteFromCoords(departure, destination)
-    if (routes) await keyValStore.set(String(order.id), routes)
-    //#endregion
+    await offerRepository.save(offer)
 
     // send offer id to driver via push and check offer status after 2000 sec
     await notifyOfferThenCheckIt({
@@ -54,9 +89,7 @@ const handleOrderRequest = async (req: Request, res: Response) => {
     // return to client with order
     return res.json(order)
   } catch (err) {
-    console.log(err)
-
-    return res.status(500).json({ error: 'Something went wrong.' })
+    return handleErrorAndSendResponse(err, res)
   }
 }
 
@@ -258,6 +291,9 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       if (user.role === UserRole.DRIVER) offer.order.driver = user
       if (user.role === UserRole.HERO) offer.order.hero = user
 
+      if (user.role === UserRole.DRIVER) offer.order.status = OrderStatus.DRIVER_MATCHED
+      if (user.role === UserRole.HERO) offer.order.status = OrderStatus.HERO_MATCHED
+
       await offerRepository.save(offer)
 
       return res.status(200).send({ success: true, offerId, message: `you accepted order: ${offerId}` })
@@ -364,12 +400,31 @@ const handleHeroRequest = async (req: Request, res: Response) => {
   }
 }
 
+const getOrders = async (_req: Request, res: Response) => {
+  try {
+    console.log(res.locals.user)
+    const orders = await orderRepository.find({
+      where: { client: { id: res.locals.user.id } },
+      relations: {
+        departure: true,
+        destination: true,
+        driver: true,
+        hero: true,
+        client: true,
+      },
+    })
+    return res.json(orders)
+  } catch (err) {
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
 // /order
 router.post('/request', user, auth, handleOrderRequest)
 router.get('/offer/:id', user, auth, handleGetOffer)
 router.post('/offer/response', user, auth, handleOfferResponse)
 router.post('/hero', user, auth, handleHeroRequest)
-
+router.get('/', user, auth, getOrders)
 router.get('/:id', user, auth, getOrder)
 
 export default router

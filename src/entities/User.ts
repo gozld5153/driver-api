@@ -41,10 +41,10 @@ class User {
   @Column({ nullable: true })
   ispId?: string
 
-  @Column()
+  @Column({ nullable: true })
   identifier?: string
 
-  @Column()
+  @Column({ nullable: true })
   password?: string
 
   @Column({ nullable: true })

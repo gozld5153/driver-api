@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import Place from './Place'
 import User from './User'
 
@@ -21,10 +21,6 @@ class Organization {
 
   @OneToMany(() => User, user => user.organization)
   users: User[]
-
-  @OneToOne(() => User)
-  @JoinColumn()
-  manager: User
 
   @OneToMany(() => Place, place => place.organization, { cascade: ['insert'] })
   places: Place[]

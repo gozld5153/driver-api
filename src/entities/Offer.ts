@@ -8,6 +8,7 @@ export enum OfferStatus {
   ACCEPTED = 'accepted',
   REJECTED = 'rejected',
   TIMEOUT = 'timeout',
+  CANCLED = 'cancled',
 }
 
 export enum OfferType {
