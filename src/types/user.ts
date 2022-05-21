@@ -13,5 +13,6 @@ export enum UserRole {
   CLIENT = 'client',
   CLIENT_MANAGER = 'client-manager',
   CLIENT_PUBLIC = 'client-public',
+  ADMIN = 'admin',
   NONE = 'none',
 }

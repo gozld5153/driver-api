@@ -200,7 +200,7 @@ const handleWebRefreshToken = async (req: Request, res: Response) => {
       return res.status(403).json({ error: err })
     }
 
-    return res.status(403).json({ error: err })
+    return res.status(403).json({ error: err.message })
   }
 }
 
@@ -371,6 +371,30 @@ const loginPublicClient = async (req: Request, res: Response) => {
   }
 }
 
+const loginAdmin = async (req: Request, res: Response) => {
+  const { id, password } = req.body
+  try {
+    const admin = await userRepository.findOneByOrFail({ identifier: id, role: UserRole.ADMIN })
+    const match = await bcrypt.compare(password, admin.password!)
+    if (!match) throw new BadRequestError('wrong password')
+
+    const accessToken = generateAccessToken(admin)
+    const refreshToken = generateRefreshToken(admin)
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60,
+      path: '/',
+    })
+
+    return res.json({ admin, accessToken })
+  } catch (err) {
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
@@ -382,6 +406,7 @@ router.get('/logout', user, logout)
 // for public client
 router.post('/public-register', registerPublicClient)
 router.post('/public-login', loginPublicClient)
+router.post('/admin-login', loginAdmin)
 
 router.post('/report-location', user, reportLocation)
 router.post('/report-status', user, reportStatus)

@@ -13,8 +13,11 @@ import orderRoutes from './routes/order'
 import placesRoutes from './routes/places'
 import setupRoutes from './routes/setup'
 import authRoutes from './routes/auth'
+import agencyRoutes from './routes/agency'
 import backdoorRoutes from './routes/backdoor'
 import configureOAuth from './lib/oauthConfig'
+import ensureAdmin from './db/ensureAdmin'
+import ensureClientPublic from './db/ensureClientPublic'
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
@@ -29,7 +32,7 @@ app.use(cookieParser())
 app.use(
   cors({
     credentials: true,
-    origin: [process.env.HOSPITAL_URL!, process.env.AGENCY_URL!],
+    origin: [process.env.HOSPITAL_URL!, process.env.AGENCY_URL!, process.env.ADMIN_URL!],
     optionsSuccessStatus: 200, // default 204 no content
   }),
 )
@@ -45,6 +48,7 @@ app.use('/setup', setupRoutes)
 app.use('/backdoor', backdoorRoutes)
 app.use('/places', placesRoutes)
 app.use('/order', orderRoutes)
+app.use('/agency', agencyRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT
@@ -53,6 +57,8 @@ app.listen(PORT, async () => {
   try {
     await dataSource.initialize()
     console.log(`db connected at ${new Date()}`)
+    await ensureAdmin()
+    await ensureClientPublic()
   } catch (error) {
     console.log({ startupError: error })
   } finally {

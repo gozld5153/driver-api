@@ -20,8 +20,8 @@ const router = express.Router()
 const handleOrderRequest = async (req: Request, res: Response) => {
   try {
     const {
-      destination: d2,
       departure: d1,
+      destination: d2,
       phoneNumber: clientPhoneNumber,
       patientName,
       patientPhoneNumber,
@@ -32,15 +32,13 @@ const handleOrderRequest = async (req: Request, res: Response) => {
       etc,
     } = req.body
     const user: User = res.locals.user
-    if (!d2 || !d1 || !clientPhoneNumber) throw new BadRequestError('destination, departure, phoneNumber is mandatory')
+    if (!d2 || !d1 || !clientPhoneNumber || !patientName || !patientPhoneNumber)
+      throw new BadRequestError('destination, departure, phoneNumber, patient, patientPhoneNumber is mandatory')
 
-    const departure = d1.id
-      ? await placeRepository.findOneByOrFail({ id: d1.id })
-      : await placeRepository.save(new Place(d1))
+    const departure = (await placeRepository.findOneBy({ ...d1 })) ?? (await placeRepository.save(new Place(d1)))
+    const destination = (await placeRepository.findOneBy({ ...d2 })) ?? (await placeRepository.save(new Place(d2)))
 
-    const destination = d2.id
-      ? await placeRepository.findOneByOrFail({ id: d1.id })
-      : await placeRepository.save(new Place(d2))
+    console.log({ d1, departure, d2, destination })
 
     const order = await orderRepository.save({
       client: user,
@@ -319,9 +317,6 @@ const handleGetOffer = async (req: Request, res: Response) => {
       select: {
         id: true,
         type: true,
-        order: {
-          id: true,
-        },
       },
       relations: {
         order: {
@@ -402,7 +397,6 @@ const handleHeroRequest = async (req: Request, res: Response) => {
 
 const getOrders = async (_req: Request, res: Response) => {
   try {
-    console.log(res.locals.user)
     const orders = await orderRepository.find({
       where: { client: { id: res.locals.user.id } },
       relations: {

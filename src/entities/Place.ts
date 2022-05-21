@@ -41,7 +41,7 @@ class Place {
   address: string
 
   @Column({ nullable: true })
-  roadAdress: string
+  roadAddress: string
 
   @OneToMany(() => Order, order => order.departure, { nullable: true })
   ordersAsDepature: Order[]
