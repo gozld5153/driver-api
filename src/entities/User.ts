@@ -7,6 +7,9 @@ import {
   BeforeInsert,
   BeforeUpdate,
   ManyToOne,
+  OneToOne,
+  UpdateDateColumn,
+  CreateDateColumn,
 } from 'typeorm'
 import bcrypt from 'bcrypt'
 import { Coord } from '../types/map'
@@ -14,6 +17,7 @@ import { IspType, UserRole } from '../types/user'
 import Offer from './Offer'
 import Order from './Order'
 import Organization from './Organization'
+import Profile from './Profile'
 @Entity('users')
 class User {
   constructor(user?: Partial<User>) {
@@ -78,6 +82,15 @@ class User {
   @OneToMany(() => Offer, offer => offer.user)
   offers: Offer[]
 
+  @OneToOne(() => Profile, profile => profile.user)
+  profile: Profile
+
+  @CreateDateColumn()
+  createdAt: Date
+
+  @UpdateDateColumn()
+  updatedAt: Date
+
   @BeforeInsert()
   @BeforeUpdate()
   convertCoordToPoint() {
@@ -88,6 +101,11 @@ class User {
   @BeforeUpdate()
   async hashPassword() {
     if (this.password) this.password = await bcrypt.hash(this.password, 6)
+  }
+
+  @BeforeInsert()
+  ensureProfileImage() {
+    if (!this.profileImage) this.profileImage = 'https://cdn.icon-icons.com/icons2/1465/PNG/512/607ambulance_100711.png'
   }
 }
 

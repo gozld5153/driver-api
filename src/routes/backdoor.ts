@@ -4,15 +4,17 @@ import {
   orderRepository,
   organizationRepository,
   placeRepository,
+  profileRepository,
   userRepository,
 } from '../db/repositories'
+import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import { UserRole } from '../types/user'
 
 const router = express.Router()
 
 const getUsers = async (_req: Request, res: Response) => {
   try {
-    const users = await userRepository.find()
+    const users = await userRepository.find({ relations: { organization: true } })
     return res.json(users)
   } catch (err) {
     console.log(err)
@@ -145,6 +147,23 @@ const getOffers = async (_req: Request, res: Response) => {
   }
 }
 
+const getProfiles = async (_req: Request, res: Response) => {
+  try {
+    const profiles = await profileRepository.find({
+      relations: {
+        organization: true,
+      },
+    })
+
+    return res.json(profiles)
+  } catch (err) {
+    console.log(err)
+
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
+router.get('/profiles', getProfiles)
 router.post('/users', getUsers)
 router.get('/organizations', getOrganization)
 router.get('/Places', getPlaces)

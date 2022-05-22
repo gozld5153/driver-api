@@ -1,6 +1,7 @@
+import Organization from '../entities/Organization'
 import User from '../entities/User'
 import { UserRole } from '../types/user'
-import { userRepository } from './repositories'
+import { organizationRepository, userRepository } from './repositories'
 
 const ensureClientPublic = async () => {
   try {
@@ -10,11 +11,21 @@ const ensureClientPublic = async () => {
     })
     console.log('public client found', publicClient.identifier)
   } catch (error) {
+    const hospital = new Organization({
+      type: 'hospital',
+      name: process.env.CLIENT_PUBLIC_NAME,
+      email: 'contact@snumc.ac.kr',
+      phoneNumber: '010-2345-8950',
+      address: '서울 종로구 대학로 101',
+    })
+    await organizationRepository.save(hospital)
+
     const publicClient = new User({
       identifier: process.env.CLIENT_PUBLIC_ID,
       name: process.env.CLIENT_PUBLIC_NAME,
       password: process.env.CLIENT_PUBLIC_PASSWORD,
       role: UserRole.CLIENT_PUBLIC,
+      organization: hospital,
     })
 
     await userRepository.save(publicClient)

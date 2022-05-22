@@ -10,10 +10,11 @@ import passport from 'passport'
 import dataSource from './db/data-source'
 import mapRoutes from './routes/map'
 import orderRoutes from './routes/order'
+import profileRoutes from './routes/profile'
 import placesRoutes from './routes/places'
 import setupRoutes from './routes/setup'
 import authRoutes from './routes/auth'
-import agencyRoutes from './routes/agency'
+import organizationRoutes from './routes/organization'
 import backdoorRoutes from './routes/backdoor'
 import configureOAuth from './lib/oauthConfig'
 import ensureAdmin from './db/ensureAdmin'
@@ -48,7 +49,8 @@ app.use('/setup', setupRoutes)
 app.use('/backdoor', backdoorRoutes)
 app.use('/places', placesRoutes)
 app.use('/order', orderRoutes)
-app.use('/agency', agencyRoutes)
+app.use('/organization', organizationRoutes)
+app.use('/profiles', profileRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT

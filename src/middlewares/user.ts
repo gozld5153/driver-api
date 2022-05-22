@@ -5,21 +5,15 @@ import { userRepository } from '../db/repositories'
 export default async (req: Request, res: Response, next: NextFunction) => {
   try {
     const accessToken = req.headers.authorization?.split(' ')[1]
-
     if (!accessToken) return next()
 
     const payload: any = jwt.verify(accessToken, process.env.JWT_SECRET!)
     if (!payload) throw new Error('wrong token')
-
     if (!payload.id) throw new Error('cannot identify you. your token is not valid')
 
     const foundUser = await userRepository.findOne({
       where: { id: payload.id },
-      relations: {
-        organization: {
-          places: true,
-        },
-      },
+      relations: { organization: true },
     })
 
     if (foundUser) res.locals.user = foundUser
