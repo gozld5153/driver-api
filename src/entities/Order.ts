@@ -3,11 +3,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
+import Invoice from './Invoice'
 import Offer from './Offer'
 import Place from './Place'
 import User from './User'
@@ -108,6 +111,10 @@ class Order {
 
   @Column({ type: 'enum', enum: OrderStatus })
   status: OrderStatus
+
+  @OneToOne(() => Invoice, invoice => invoice.order)
+  @JoinColumn()
+  invoice: Invoice
 
   @BeforeUpdate()
   recordMatchTime() {

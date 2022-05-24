@@ -118,9 +118,7 @@ const reportLocation = async (req: Request, res: Response) => {
     user.coord = { latitude, longitude }
     await userRepository.save(user)
 
-    console.log({ locationSavedUser: user })
-
-    return res.status(200)
+    return res.status(200).send()
   } catch (err) {
     console.log(err)
 

@@ -1,7 +1,14 @@
 import express, { Request, Response } from 'express'
 import { messaging } from 'firebase-admin'
 import { In, Not } from 'typeorm'
-import { offerRepository, orderRepository, placeRepository, userRepository } from '../db/repositories'
+import {
+  invoiceRepository,
+  offerRepository,
+  orderRepository,
+  placeRepository,
+  userRepository,
+} from '../db/repositories'
+import Invoice from '../entities/Invoice'
 import Offer, { OfferStatus } from '../entities/Offer'
 import { OrderStatus } from '../entities/Order'
 import Place from '../entities/Place'
@@ -77,7 +84,7 @@ const handleOrderRequest = async (req: Request, res: Response) => {
     await offerRepository.save(offer)
 
     // send offer id to driver via push and check offer status after 2000 sec
-    await notifyOfferThenCheckIt({
+    notifyOfferThenCheckIt({
       offerId: offer.id,
       token: driver.pushToken,
       title: '이송 요청',
@@ -122,18 +129,22 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
 
 type NotifyOfferThenCheckItType = { offerId: number; token: string; title: string; body: string; timeout?: number }
 const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 20000 }: NotifyOfferThenCheckItType) => {
-  const pushResult = await notifyByPush({
-    token,
-    notification: {
-      title,
-      body,
-    },
-    data: { offerId: String(offerId) },
-  })
+  try {
+    const pushResult = await notifyByPush({
+      token,
+      notification: {
+        title,
+        body,
+      },
+      data: { offerId: String(offerId) },
+    })
 
-  console.log({ pushResult })
+    console.log({ pushResult })
 
-  checkOfferStatus(offerId, timeout)
+    checkOfferStatus(offerId, timeout)
+  } catch (error) {
+    console.log({ error })
+  }
 }
 
 const checkOfferStatus = (offerId: number, timeout: number) => {
@@ -294,14 +305,19 @@ const handleOfferResponse = async (req: Request, res: Response) => {
 
       await offerRepository.save(offer)
 
-      return res.status(200).send({ success: true, offerId, message: `you accepted order: ${offerId}` })
+      return res.send({
+        success: true,
+        offerId,
+        orderId: offer.order.id,
+        message: `you accepted order: ${offerId}`,
+      })
     }
 
     return res.status(204).send()
   } catch (err) {
     console.log(err)
 
-    return res.status(500).json({ error: 'Something went wrong.' })
+    return handleErrorAndSendResponse(err, res)
   }
 }
 
@@ -317,6 +333,7 @@ const handleGetOffer = async (req: Request, res: Response) => {
       select: {
         id: true,
         type: true,
+        createdAt: true,
       },
       relations: {
         order: {
@@ -348,6 +365,8 @@ const handleGetOffer = async (req: Request, res: Response) => {
     // route
     const routeData: RouteData = await keyValStore.get(String(offer.order.id))
 
+    console.log({ offer })
+
     return res.json({ offer, routeData })
   } catch (err) {
     console.log(err)
@@ -356,7 +375,7 @@ const handleGetOffer = async (req: Request, res: Response) => {
   }
 }
 
-const handleHeroRequest = async (req: Request, res: Response) => {
+const handleRequestHero = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.body
     const driver: User = res.locals.user
@@ -395,6 +414,27 @@ const handleHeroRequest = async (req: Request, res: Response) => {
   }
 }
 
+const handleRejectHero = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.body
+    const order = await orderRepository.findOneByOrFail({ id: orderId })
+
+    const invoice = new Invoice({ type: 'driver', order, goochooriFee: 3000 })
+    const savedInvoice = await invoiceRepository.save(invoice)
+
+    console.log(savedInvoice)
+
+    // order.invoice = invoice
+    // await orderRepository.save(order)
+
+    return res.json(savedInvoice)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
 const getOrders = async (_req: Request, res: Response) => {
   console.log('getOrders')
   try {
@@ -416,9 +456,14 @@ const getOrders = async (_req: Request, res: Response) => {
 
 // /order
 router.post('/request', user, auth, handleOrderRequest)
+
 router.get('/offer/:id', user, auth, handleGetOffer)
 router.post('/offer/response', user, auth, handleOfferResponse)
-router.post('/hero', user, auth, handleHeroRequest)
+
+router.post('/request-hero', user, auth, handleRequestHero)
+
+router.post('/reject-hero', user, auth, handleRejectHero)
+
 router.get('/', user, auth, getOrders)
 router.get('/:id', user, auth, getOrder)
 

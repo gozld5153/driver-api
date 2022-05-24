@@ -6,6 +6,7 @@ import {
   placeRepository,
   invitationRepository,
   userRepository,
+  invoiceRepository,
 } from '../db/repositories'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import { UserRole } from '../types/user'
@@ -163,6 +164,17 @@ const getProfiles = async (_req: Request, res: Response) => {
   }
 }
 
+const getInvoices = async (_preq: Request, res: Response) => {
+  try {
+    const invoices = await invoiceRepository.find({ relations: { order: true } })
+    return res.json(invoices)
+  } catch (err) {
+    console.log(err)
+
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
 router.get('/profiles', getProfiles)
 router.post('/users', getUsers)
 router.get('/organizations', getOrganization)
@@ -173,5 +185,6 @@ router.get('/drivers', getDrivers)
 router.get('/heros', getHeros)
 router.get('/orders', getOrders)
 router.get('/offers', getOffers)
+router.get('/invoices', getInvoices)
 
 export default router
