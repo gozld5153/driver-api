@@ -396,6 +396,7 @@ const handleHeroRequest = async (req: Request, res: Response) => {
 }
 
 const getOrders = async (_req: Request, res: Response) => {
+  console.log('getOrders')
   try {
     const orders = await orderRepository.find({
       where: { client: { id: res.locals.user.id } },

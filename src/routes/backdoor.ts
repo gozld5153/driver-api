@@ -4,7 +4,7 @@ import {
   orderRepository,
   organizationRepository,
   placeRepository,
-  profileRepository,
+  invitationRepository,
   userRepository,
 } from '../db/repositories'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
@@ -149,7 +149,7 @@ const getOffers = async (_req: Request, res: Response) => {
 
 const getProfiles = async (_req: Request, res: Response) => {
   try {
-    const profiles = await profileRepository.find({
+    const profiles = await invitationRepository.find({
       relations: {
         organization: true,
       },

@@ -7,7 +7,6 @@ import {
   BeforeInsert,
   BeforeUpdate,
   ManyToOne,
-  OneToOne,
   UpdateDateColumn,
   CreateDateColumn,
 } from 'typeorm'
@@ -17,7 +16,6 @@ import { IspType, UserRole } from '../types/user'
 import Offer from './Offer'
 import Order from './Order'
 import Organization from './Organization'
-import Profile from './Profile'
 @Entity('users')
 class User {
   constructor(user?: Partial<User>) {
@@ -81,9 +79,6 @@ class User {
 
   @OneToMany(() => Offer, offer => offer.user)
   offers: Offer[]
-
-  @OneToOne(() => Profile, profile => profile.user)
-  profile: Profile
 
   @CreateDateColumn()
   createdAt: Date

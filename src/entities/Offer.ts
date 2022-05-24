@@ -16,7 +16,7 @@ export enum OfferType {
   HERO = 'hero',
 }
 
-@Entity()
+@Entity('offers')
 class Offer {
   constructor(offer?: Partial<Offer>) {
     if (offer) Object.assign(this, offer)

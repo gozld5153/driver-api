@@ -9,8 +9,9 @@ import passport from 'passport'
 
 import dataSource from './db/data-source'
 import mapRoutes from './routes/map'
+import adminRoutes from './routes/admin'
 import orderRoutes from './routes/order'
-import profileRoutes from './routes/profile'
+import invitationRoutes from './routes/invitation'
 import placesRoutes from './routes/places'
 import setupRoutes from './routes/setup'
 import authRoutes from './routes/auth'
@@ -50,7 +51,8 @@ app.use('/backdoor', backdoorRoutes)
 app.use('/places', placesRoutes)
 app.use('/order', orderRoutes)
 app.use('/organization', organizationRoutes)
-app.use('/profiles', profileRoutes)
+app.use('/invitations', invitationRoutes)
+app.use('/admin', adminRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT

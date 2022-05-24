@@ -17,6 +17,7 @@ const ensureClientPublic = async () => {
       email: 'contact@snumc.ac.kr',
       phoneNumber: '010-2345-8950',
       address: '서울 종로구 대학로 101',
+      isVerified: true,
     })
     await organizationRepository.save(hospital)
 

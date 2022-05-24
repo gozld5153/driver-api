@@ -1,3 +1,4 @@
+import User from '../entities/User'
 import { Coord } from './map'
 import { IspType, UserRole } from './user'
 
@@ -13,10 +14,7 @@ export type LoginRequestDTO = {
 }
 
 export type LoginResponseDTO = {
-  name: string
-  email: string
+  user: User
   accessToken: string
   refreshToken: string
-  id: number
-  profileImage?: string
 }

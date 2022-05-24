@@ -6,7 +6,6 @@ import { generateAccessToken, generateRefreshToken } from '../lib/helpers'
 import user from '../middlewares/user'
 import { LoginRequestDTO, LoginResponseDTO } from '../types/dto'
 import jwt, { TokenExpiredError } from 'jsonwebtoken'
-import { messaging } from 'firebase-admin'
 import passport from 'passport'
 import { IspType, UserRole } from '../types/user'
 import auth from '../middlewares/auth'
@@ -33,7 +32,12 @@ const login = async (req: Request, res: Response) => {
 
   console.log({ dto: req.body })
   try {
-    const foundUser = await userRepository.findOneBy({ role, isp, ispId })
+    const foundUser = await userRepository.findOne({
+      where: { role, isp, ispId },
+      relations: {
+        organization: true,
+      },
+    })
 
     if (foundUser) {
       const accessToken = generateAccessToken(foundUser)
@@ -45,10 +49,7 @@ const login = async (req: Request, res: Response) => {
       }
 
       return res.json({
-        id: foundUser.id,
-        name: foundUser.name,
-        email: foundUser.email,
-        profileImage: foundUser.profileImage,
+        user: foundUser,
         accessToken,
         refreshToken,
       })
@@ -71,12 +72,9 @@ const login = async (req: Request, res: Response) => {
     const refreshToken = generateRefreshToken(newUser)
 
     const responseDTO: LoginResponseDTO = {
-      id: newUser.id,
-      name,
-      email,
+      user: newUser,
       accessToken,
       refreshToken,
-      profileImage: newUser.profileImage,
     }
 
     return res.json(responseDTO)
@@ -131,41 +129,12 @@ const reportLocation = async (req: Request, res: Response) => {
 }
 
 const reportStatus = async (req: Request, res: Response) => {
-  const { status } = req.body
+  const { status, pushToken } = req.body
   const user: User = res.locals.user
   try {
     user.status = status
+    user.pushToken = pushToken
     await userRepository.save(user)
-
-    console.log(user.pushToken)
-
-    if (user.pushToken) {
-      const result = await messaging().send({
-        token: user.pushToken,
-        notification: {
-          title: '상태변경',
-          body: `상태가 ${user.status}로 변경됐습니다.`,
-        },
-        android: {
-          notification: {
-            channelId: 'riders',
-            vibrateTimingsMillis: [0, 500, 500, 500],
-            priority: 'high',
-            defaultVibrateTimings: false,
-          },
-        },
-        apns: {
-          payload: {
-            aps: {
-              sound: 'default',
-              category: 'riders',
-            },
-          },
-        },
-      })
-
-      console.log({ result })
-    }
 
     return res.status(200).json({ status })
   } catch (err) {
@@ -212,12 +181,18 @@ const handleRefreshToken = async (req: Request, res: Response) => {
     const payload: any = jwt.verify(token, process.env.JWT_REFRESH_SECRET!)
     if (!payload || !payload.id) throw new Error('token is invalid')
 
-    const user = await userRepository.findOneBy({ id: payload.id })
+    const user = await userRepository.findOne({
+      where: { id: payload.id },
+      relations: {
+        organization: true,
+      },
+    })
     if (!user) throw new Error('cannot find user given token')
 
-    const { id, name, email, coord, profileImage, status } = user
-
-    return res.json({ user: { id, name, email, coord, profileImage, status }, accessToken: generateAccessToken(user) })
+    return res.json({
+      user,
+      accessToken: generateAccessToken(user),
+    })
   } catch (err) {
     console.log({ err })
 

@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm'
 import Place from './Place'
-import Profile from './Profile'
+import Invitation from './Invitation'
 import User from './User'
 
 type OrganizationType = 'hospital' | 'agency'
@@ -58,8 +58,8 @@ class Organization {
   @UpdateDateColumn()
   updatedAt: Date
 
-  @OneToMany(() => Profile, profile => profile.organization)
-  profiles: Profile[]
+  @OneToMany(() => Invitation, profile => profile.organization)
+  profiles: Invitation[]
 
   @BeforeInsert()
   ensureProfileImage() {

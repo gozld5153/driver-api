@@ -1,22 +1,20 @@
+import { Exclude } from 'class-transformer'
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   BeforeInsert,
   ManyToOne,
-  OneToOne,
-  JoinColumn,
   UpdateDateColumn,
   CreateDateColumn,
   DeleteDateColumn,
 } from 'typeorm'
-import { profileRepository } from '../db/repositories'
+import { invitationRepository } from '../db/repositories'
 import Organization from './Organization'
-import User from './User'
 
-@Entity('profiles')
-class Profile {
-  constructor(profile?: Partial<Profile>) {
+@Entity('invitations')
+class Invitation {
+  constructor(profile?: Partial<Invitation>) {
     if (profile) Object.assign(this, profile)
   }
 
@@ -39,37 +37,36 @@ class Profile {
   licenseNumber: string
 
   @Column()
-  secret?: string
+  code?: string
 
   @ManyToOne(() => Organization, organization => organization.profiles)
   organization: Organization
 
-  @OneToOne(() => User, user => user.profile, { nullable: true })
-  @JoinColumn()
-  user: User
-
+  @Exclude()
   @CreateDateColumn()
   createdAt: Date
 
+  @Exclude()
   @UpdateDateColumn()
   updatedAt: Date
 
+  @Exclude()
   @DeleteDateColumn()
   deletedAt: Date
 
   @BeforeInsert()
   async addSecret() {
-    let secret = ''
-    let secretFound = false
+    let code = ''
+    let codeFound = false
     do {
-      secret = String(Math.round(Math.random() * 1000000)).padStart(6, '0')
+      code = String(Math.round(Math.random() * 1000000)).padStart(6, '0')
 
-      const foundProfile = await profileRepository.findOneBy({ secret })
-      secretFound = foundProfile !== null
-    } while (secretFound)
+      const foundProfile = await invitationRepository.findOneBy({ code })
+      codeFound = foundProfile !== null
+    } while (codeFound)
 
-    this.secret = secret
+    this.code = code
   }
 }
 
-export default Profile
+export default Invitation
