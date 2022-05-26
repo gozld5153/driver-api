@@ -16,6 +16,7 @@ import { IspType, UserRole } from '../types/user'
 import Offer from './Offer'
 import Order from './Order'
 import Organization from './Organization'
+import { Exclude, instanceToPlain } from 'class-transformer'
 @Entity('users')
 class User {
   constructor(user?: Partial<User>) {
@@ -35,10 +36,17 @@ class User {
   @Column({ nullable: true })
   email?: string
 
+  @Column({ nullable: true })
+  phoneNumber?: string
+
+  @Column({ nullable: true })
+  licenseNumber?: string
+
   @Index()
   @Column({ type: 'enum', enum: IspType, default: IspType.NONE, nullable: true })
   isp?: IspType
 
+  @Exclude()
   @Index()
   @Column({ nullable: true })
   ispId?: string
@@ -46,6 +54,7 @@ class User {
   @Column({ nullable: true })
   identifier?: string
 
+  @Exclude()
   @Column({ nullable: true })
   password?: string
 
@@ -59,6 +68,7 @@ class User {
   @Column({ type: 'point', spatialFeatureType: 'Point', srid: 4326, nullable: true })
   location: string
 
+  @Exclude()
   @Column({ nullable: true })
   pushToken: string
 
@@ -80,9 +90,11 @@ class User {
   @OneToMany(() => Offer, offer => offer.user)
   offers: Offer[]
 
+  @Exclude()
   @CreateDateColumn()
   createdAt: Date
 
+  @Exclude()
   @UpdateDateColumn()
   updatedAt: Date
 
@@ -100,7 +112,12 @@ class User {
 
   @BeforeInsert()
   ensureProfileImage() {
-    if (!this.profileImage) this.profileImage = 'https://cdn.icon-icons.com/icons2/1465/PNG/512/607ambulance_100711.png'
+    if (!this.profileImage)
+      this.profileImage = `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 10)}.jpg`
+  }
+
+  toJSON() {
+    return instanceToPlain(this)
   }
 }
 

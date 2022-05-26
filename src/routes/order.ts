@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express'
-import { messaging } from 'firebase-admin'
 import { In, Not } from 'typeorm'
 import {
   invoiceRepository,
@@ -16,6 +15,7 @@ import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import { getRouteFromCoords } from '../lib/helpers'
+import notifyByPush from '../lib/push'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
 import keyValStore from '../services/keyValStore'
@@ -94,37 +94,9 @@ const handleOrderRequest = async (req: Request, res: Response) => {
     // return to client with order
     return res.json(order)
   } catch (err) {
+    console.log({ err })
     return handleErrorAndSendResponse(err, res)
   }
-}
-
-type NotifyByPushType = { token: string; data: any; notification: any }
-const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => {
-  const pushResult = await messaging().send({
-    token: token,
-    notification,
-    data,
-    android: {
-      notification: {
-        channelId: 'riders',
-        vibrateTimingsMillis: [0, 500, 500, 500],
-        priority: 'high',
-        defaultVibrateTimings: false,
-      },
-      priority: 'high',
-    },
-    apns: {
-      payload: {
-        aps: {
-          sound: 'default',
-          category: 'riders',
-          contentAvailable: true,
-        },
-      },
-    },
-  })
-
-  return pushResult
 }
 
 type NotifyOfferThenCheckItType = { offerId: number; token: string; title: string; body: string; timeout?: number }
@@ -144,6 +116,7 @@ const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 2
     checkOfferStatus(offerId, timeout)
   } catch (error) {
     console.log({ error })
+    await notifyOfferThenCheckIt({ offerId, token, title, body, timeout })
   }
 }
 
@@ -461,7 +434,6 @@ router.get('/offer/:id', user, auth, handleGetOffer)
 router.post('/offer/response', user, auth, handleOfferResponse)
 
 router.post('/request-hero', user, auth, handleRequestHero)
-
 router.post('/reject-hero', user, auth, handleRejectHero)
 
 router.get('/', user, auth, getOrders)

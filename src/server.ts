@@ -15,6 +15,7 @@ import invitationRoutes from './routes/invitation'
 import placesRoutes from './routes/places'
 import setupRoutes from './routes/setup'
 import authRoutes from './routes/auth'
+import pickupRoutes from './routes/pickup'
 import organizationRoutes from './routes/organization'
 import backdoorRoutes from './routes/backdoor'
 import configureOAuth from './lib/oauthConfig'
@@ -53,6 +54,7 @@ app.use('/order', orderRoutes)
 app.use('/organization', organizationRoutes)
 app.use('/invitations', invitationRoutes)
 app.use('/admin', adminRoutes)
+app.use('/pickup', pickupRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT

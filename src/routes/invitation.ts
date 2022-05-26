@@ -142,6 +142,8 @@ const acceptInvitation = async (req: Request, res: Response) => {
     // update user info using invitation data
     user.name = invitation.name
     user.email = invitation.email
+    user.licenseNumber = invitation.licenseNumber
+    user.phoneNumber = invitation.phoneNumber
 
     user.organization = invitation.organization
     await userRepository.save(user)

@@ -1,4 +1,4 @@
-import { Exclude } from 'class-transformer'
+import { Exclude, instanceToPlain } from 'class-transformer'
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -66,6 +66,10 @@ class Invitation {
     } while (codeFound)
 
     this.code = code
+  }
+
+  toJSON() {
+    return instanceToPlain(this)
   }
 }
 

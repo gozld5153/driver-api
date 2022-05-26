@@ -258,7 +258,7 @@ const oauthController = async (req: Request, res: Response) => {
       httpOnly: true,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 1000 * 60 * 60,
+      maxAge: 1000 * 60 * 60 * 24 * 15,
       path: '/',
     })
 
@@ -334,7 +334,7 @@ const loginPublicClient = async (req: Request, res: Response) => {
       httpOnly: true,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 1000 * 60 * 60,
+      maxAge: 1000 * 60 * 60 * 24 * 15,
       path: '/',
     })
 
@@ -358,7 +358,7 @@ const loginAdmin = async (req: Request, res: Response) => {
       httpOnly: true,
       sameSite: 'strict',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 1000 * 60 * 60,
+      maxAge: 1000 * 60 * 60 * 24 * 15,
       path: '/',
     })
 
