@@ -9,6 +9,8 @@ import passport from 'passport'
 
 import dataSource from './db/data-source'
 import mapRoutes from './routes/map'
+import transferRoutes from './routes/transfer'
+
 import adminRoutes from './routes/admin'
 import orderRoutes from './routes/order'
 import invitationRoutes from './routes/invitation'
@@ -55,6 +57,7 @@ app.use('/organization', organizationRoutes)
 app.use('/invitations', invitationRoutes)
 app.use('/admin', adminRoutes)
 app.use('/pickup', pickupRoutes)
+app.use('/transfer', transferRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT

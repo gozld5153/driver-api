@@ -126,6 +126,7 @@ const getOrders = async (_req: Request, res: Response) => {
           user: true,
         },
       },
+      order: { id: 'desc' },
     })
 
     return res.json(orders)

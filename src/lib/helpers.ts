@@ -14,7 +14,6 @@ export const generateAccessToken = (user: User) =>
 type arrCoord = [number, number]
 export const getRouteFromCoords = async (departure: Coord, destination: Coord) => {
   const url = `https://naveropenapi.apigw.ntruss.com/map-direction/v1/driving?start=${departure.longitude},${departure.latitude}&goal=${destination.longitude},${destination.latitude}`
-  console.log(url)
   const response = await axios.get(url, {
     headers: {
       'X-NCP-APIGW-API-KEY-ID': process.env.NCP_CLIENT_ID!,

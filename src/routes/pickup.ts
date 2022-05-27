@@ -37,11 +37,11 @@ const handleRequestPickup = async (req: Request, res: Response) => {
     const title = pickup ? '픽업 요청' : '히어로 배정됨(픽업 없음)'
     const body = pickup ? `${user.name}님이 픽업을 요청했습니다.` : `${user.name}님이 목적지로 직접이동합니다.`
 
-    await notifyByPush({
+    notifyByPush({
       token: order.driver.pushToken,
       data: { heroId: String(user.id), pickup: String(pickup) },
       notification: { title, body },
-    })
+    }).catch(e => console.log('pickup request push failed', e))
 
     return res.json({ success: true })
   } catch (err) {
@@ -64,8 +64,10 @@ const handleGetHero = async (req: Request, res: Response) => {
   }
 }
 
+// GET /pickup/hero/324
 router.get('/hero/:id', user, auth, handleGetHero)
 
+// POST /pickup/request
 router.post('/request', user, auth, handleRequestPickup)
 
 export default router

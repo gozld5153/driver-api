@@ -24,7 +24,7 @@ import { UserRole } from '../types/user'
 
 const router = express.Router()
 
-const handleOrderRequest = async (req: Request, res: Response) => {
+const handleRequestOrder = async (req: Request, res: Response) => {
   try {
     const {
       departure: d1,
@@ -59,7 +59,6 @@ const handleOrderRequest = async (req: Request, res: Response) => {
       description,
       gear,
       etc,
-      status: OrderStatus.PENDING,
     })
 
     const routes = await getRouteFromCoords(departure, destination)
@@ -73,10 +72,10 @@ const handleOrderRequest = async (req: Request, res: Response) => {
       .orderBy('distance')
       .getRawOne()
 
-    if (!driver?.pushToken) {
-      // TODO: driver가 없다는 것을 client에게 알림
-      // TODO: 주기적으로 이 order 처리할 드라이버 찾아서 처리
-      return res.json(order)
+    if (!driver) {
+      order.status = OrderStatus.NO_DRIVER
+      const savedOrder = await orderRepository.save(order)
+      return res.json(savedOrder)
     }
 
     const offer = new Offer({ order, type: driver.role, user: driver, status: OfferStatus.PENDING })
@@ -116,7 +115,6 @@ const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 2
     checkOfferStatus(offerId, timeout)
   } catch (error) {
     console.log({ error })
-    await notifyOfferThenCheckIt({ offerId, token, title, body, timeout })
   }
 }
 
@@ -185,7 +183,7 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
   }, timeout)
 }
 
-const getOrder = async (req: Request, res: Response) => {
+const handleGetOrder = async (req: Request, res: Response) => {
   const { id } = req.params
   try {
     const order = await orderRepository.findOne({
@@ -269,6 +267,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
 
     if (response === 'accept') {
       offer.status = OfferStatus.ACCEPTED
+      user.status = 'working'
 
       if (user.role === UserRole.DRIVER) offer.order.driver = user
       if (user.role === UserRole.HERO) offer.order.hero = user
@@ -276,6 +275,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       if (user.role === UserRole.DRIVER) offer.order.status = OrderStatus.DRIVER_MATCHED
       if (user.role === UserRole.HERO) offer.order.status = OrderStatus.HERO_MATCHED
 
+      await userRepository.save(user)
       await offerRepository.save(offer)
 
       return res.send({
@@ -337,8 +337,6 @@ const handleGetOffer = async (req: Request, res: Response) => {
 
     // route
     const routeData: RouteData = await keyValStore.get(String(offer.order.id))
-
-    console.log({ offer })
 
     return res.json({ offer, routeData })
   } catch (err) {
@@ -408,8 +406,7 @@ const handleRejectHero = async (req: Request, res: Response) => {
   }
 }
 
-const getOrders = async (_req: Request, res: Response) => {
-  console.log('getOrders')
+const handleGetOrders = async (_req: Request, res: Response) => {
   try {
     const orders = await orderRepository.find({
       where: { client: { id: res.locals.user.id } },
@@ -428,7 +425,7 @@ const getOrders = async (_req: Request, res: Response) => {
 }
 
 // /order
-router.post('/request', user, auth, handleOrderRequest)
+router.post('/request', user, auth, handleRequestOrder)
 
 router.get('/offer/:id', user, auth, handleGetOffer)
 router.post('/offer/response', user, auth, handleOfferResponse)
@@ -436,7 +433,7 @@ router.post('/offer/response', user, auth, handleOfferResponse)
 router.post('/request-hero', user, auth, handleRequestHero)
 router.post('/reject-hero', user, auth, handleRejectHero)
 
-router.get('/', user, auth, getOrders)
-router.get('/:id', user, auth, getOrder)
+router.get('/', user, auth, handleGetOrders)
+router.get('/:id', user, auth, handleGetOrder)
 
 export default router

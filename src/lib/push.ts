@@ -9,7 +9,7 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
       data,
       android: {
         notification: {
-          channelId: 'goochoori',
+          channelId: 'riders',
           vibrateTimingsMillis: [0, 500, 500, 500],
           priority: 'high',
           defaultVibrateTimings: false,
@@ -20,8 +20,8 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
         payload: {
           aps: {
             sound: 'default',
-            category: 'goochoori',
-            // contentAvailable: true,
+            category: 'riders',
+            contentAvailable: true,
           },
         },
       },
@@ -30,7 +30,8 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
     return pushResult
   } catch (error) {
     console.log({ 'notifyByPush error': error })
-    throw error
+    await notifyByPush({ token, data, notification })
+    return 'notifyByPush error'
   }
 }
 

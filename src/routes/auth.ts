@@ -118,6 +118,14 @@ const reportLocation = async (req: Request, res: Response) => {
     user.coord = { latitude, longitude }
     await userRepository.save(user)
 
+    console.log('report-location', {
+      userId: user.id,
+      role: user.role,
+      latitude,
+      longitude,
+      when: new Date().getMilliseconds(),
+    })
+
     return res.status(200).send()
   } catch (err) {
     console.log(err)
@@ -368,9 +376,25 @@ const loginAdmin = async (req: Request, res: Response) => {
   }
 }
 
+const handleRefreshPushToken = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as User
+    const { pushToken } = req.body
+    if (!pushToken) throw new BadRequestError('no push token')
+
+    user.pushToken = pushToken
+    await userRepository.save(pushToken)
+
+    return res.json(user)
+  } catch (error) {
+    return handleErrorAndSendResponse(error, res)
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
+router.post('/refresh-push-token', auth, user, handleRefreshPushToken)
 
 // for mobile
 router.post('/login', login)

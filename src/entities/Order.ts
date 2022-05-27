@@ -17,6 +17,7 @@ import User from './User'
 
 export enum OrderStatus {
   PENDING = 'pending',
+  NO_DRIVER = 'no-driver',
   DRIVER_MATCHED = 'driver-matched',
   HERO_MATCHED = 'hero-matched',
   HERO_PICKUPED = 'hero-pickuped',
@@ -109,7 +110,7 @@ class Order {
   @Column({ nullable: true })
   etc: string
 
-  @Column({ type: 'enum', enum: OrderStatus })
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus
 
   @OneToOne(() => Invoice, invoice => invoice.order)
@@ -120,6 +121,10 @@ class Order {
   recordMatchTime() {
     if (this.driver) this.driverMatchedAt = new Date()
     if (this.hero) this.heroMatchedAt = new Date()
+    if (this.status === OrderStatus.DEPARTED) this.departedAt = new Date()
+    if (this.status === OrderStatus.LOADED) this.loadedAt = new Date()
+    if (this.status === OrderStatus.ARRIVED) this.arrivedAt = new Date()
+    if (this.status === OrderStatus.COMPLETED) this.completedAt = new Date()
   }
 }
 
