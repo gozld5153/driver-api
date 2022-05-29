@@ -33,6 +33,9 @@ class Invoice {
   @Column({ nullable: true })
   transferFinishedAt: Date
 
+  @Column({ nullable: true })
+  calculatedAt: Date
+
   @OneToOne(() => Order, order => order.invoice)
   order: Order
 }

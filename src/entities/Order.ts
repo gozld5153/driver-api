@@ -1,4 +1,5 @@
 import {
+  BeforeInsert,
   BeforeUpdate,
   Column,
   CreateDateColumn,
@@ -16,14 +17,20 @@ import Place from './Place'
 import User from './User'
 
 export enum OrderStatus {
-  PENDING = 'pending',
   NO_DRIVER = 'no-driver',
+  PENDING = 'pending',
+  STARTED = 'started',
   DRIVER_MATCHED = 'driver-matched',
+  HERO_REQUESTED = 'hero-requested',
+  HERO_REJECTED = 'hero-rejected',
+  PICKUP_REQUESTED = 'pickup-requested',
+  PICKUP_REJECTED = 'pickup-rejected',
   HERO_MATCHED = 'hero-matched',
   HERO_PICKUPED = 'hero-pickuped',
   LOADED = 'loaded',
   DEPARTED = 'departed',
   ARRIVED = 'arrived',
+  FEE_REQUESTED = 'fee-requested',
   FEE_CALCULATED = 'fee-calculated',
   COMPLETED = 'completed',
   CANCELLED = 'canceled',
@@ -72,6 +79,21 @@ class Order {
   heroPickUpedAt: Date
 
   @Column({ nullable: true })
+  startedAt: Date
+
+  @Column({ nullable: true })
+  heroRequestedAt: Date
+
+  @Column({ nullable: true })
+  heroRejectedAt: Date
+
+  @Column({ nullable: true })
+  pickupRequestedAt: Date
+
+  @Column({ nullable: true })
+  pickupRejectedAt: Date
+
+  @Column({ nullable: true })
   departedAt: Date
 
   @Column({ nullable: true })
@@ -79,6 +101,9 @@ class Order {
 
   @Column({ nullable: true })
   arrivedAt: Date
+
+  @Column({ nullable: true })
+  feeRequestedAt: Date
 
   @Column({ nullable: true })
   feeCaculatedAt: Date
@@ -118,12 +143,20 @@ class Order {
   invoice: Invoice
 
   @BeforeUpdate()
+  @BeforeInsert()
   recordMatchTime() {
     if (this.driver) this.driverMatchedAt = new Date()
     if (this.hero) this.heroMatchedAt = new Date()
+    if (this.status === OrderStatus.STARTED) this.startedAt = new Date()
+    if (this.status === OrderStatus.HERO_REJECTED) this.heroRejectedAt = new Date()
+    if (this.status === OrderStatus.HERO_REQUESTED) this.heroRequestedAt = new Date()
+    if (this.status === OrderStatus.PICKUP_REQUESTED) this.pickupRequestedAt = new Date()
+    if (this.status === OrderStatus.PICKUP_REJECTED) this.pickupRejectedAt = new Date()
     if (this.status === OrderStatus.DEPARTED) this.departedAt = new Date()
     if (this.status === OrderStatus.LOADED) this.loadedAt = new Date()
     if (this.status === OrderStatus.ARRIVED) this.arrivedAt = new Date()
+    if (this.status === OrderStatus.FEE_REQUESTED) this.feeRequestedAt = new Date()
+    if (this.status === OrderStatus.FEE_CALCULATED) this.feeCaculatedAt = new Date()
     if (this.status === OrderStatus.COMPLETED) this.completedAt = new Date()
   }
 }

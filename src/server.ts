@@ -1,16 +1,15 @@
+import dotenv from 'dotenv'
+dotenv.config()
+
 import express, { urlencoded } from 'express'
 import morgan from 'morgan'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import admin from 'firebase-admin'
 import passport from 'passport'
-// import dotenv from 'dotenv'
-// dotenv.config()
 
-import dataSource from './db/data-source'
 import mapRoutes from './routes/map'
 import transferRoutes from './routes/transfer'
-
 import adminRoutes from './routes/admin'
 import orderRoutes from './routes/order'
 import invitationRoutes from './routes/invitation'
@@ -20,6 +19,9 @@ import authRoutes from './routes/auth'
 import pickupRoutes from './routes/pickup'
 import organizationRoutes from './routes/organization'
 import backdoorRoutes from './routes/backdoor'
+import calculationRoutes from './routes/calculation'
+
+import dataSource from './db/data-source'
 import configureOAuth from './lib/oauthConfig'
 import ensureAdmin from './db/ensureAdmin'
 import ensureClientPublic from './db/ensureClientPublic'
@@ -58,6 +60,7 @@ app.use('/invitations', invitationRoutes)
 app.use('/admin', adminRoutes)
 app.use('/pickup', pickupRoutes)
 app.use('/transfer', transferRoutes)
+app.use('/calculation', calculationRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT

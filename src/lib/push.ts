@@ -30,7 +30,7 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
     return pushResult
   } catch (error) {
     console.log({ 'notifyByPush error': error })
-    await notifyByPush({ token, data, notification })
+    notifyByPush({ token, data, notification })
     return 'notifyByPush error'
   }
 }

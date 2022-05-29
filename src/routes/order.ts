@@ -194,6 +194,7 @@ const handleGetOrder = async (req: Request, res: Response) => {
         client: true,
         driver: true,
         hero: true,
+        invoice: true,
       },
     })
     return res.json(order)
@@ -354,6 +355,9 @@ const handleRequestHero = async (req: Request, res: Response) => {
     if (!orderId) throw new Error('orderId is mandatory')
 
     const order = await orderRepository.findOneOrFail({ where: { id: orderId }, relations: { departure: true } })
+    order.status = OrderStatus.HERO_REQUESTED
+    await orderRepository.save(order)
+
     const hero = await userRepository
       .createQueryBuilder()
       .select(`*, st_distance_sphere(location, st_geomfromtext('${order.departure?.point}', 4326)) as distance`)
@@ -389,16 +393,18 @@ const handleRejectHero = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.body
     const order = await orderRepository.findOneByOrFail({ id: orderId })
+    order.status = OrderStatus.HERO_REJECTED
+    await orderRepository.save(order)
 
     const invoice = new Invoice({ type: 'driver', order, goochooriFee: 3000 })
-    const savedInvoice = await invoiceRepository.save(invoice)
+    //const savedInvoice = await invoiceRepository.save(invoice)
 
-    console.log(savedInvoice)
+    await invoiceRepository.save(invoice)
 
     // order.invoice = invoice
     // await orderRepository.save(order)
 
-    return res.json(savedInvoice)
+    return res.json({ invoice, order })
   } catch (err) {
     console.log(err)
 
@@ -416,6 +422,7 @@ const handleGetOrders = async (_req: Request, res: Response) => {
         driver: true,
         hero: true,
         client: true,
+        invoice: true,
       },
     })
     return res.json(orders)

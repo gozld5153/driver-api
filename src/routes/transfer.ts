@@ -1,16 +1,19 @@
 import express, { Request, Response } from 'express'
 import { orderRepository } from '../db/repositories'
 import { OrderStatus } from '../entities/Order'
+import User from '../entities/User'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import notifyByPush from '../lib/push'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
+import { UserRole } from '../types/user'
 
 const router = express.Router()
 
 const handleStatus = async (req: Request, res: Response) => {
   try {
     const { orderId, status } = req.body
+    const user = res.locals.user as User
 
     const order = await orderRepository.findOneOrFail({
       where: { id: orderId },
@@ -34,11 +37,14 @@ const handleStatus = async (req: Request, res: Response) => {
 
     const body = `${user.name}님이 이송상태를 ${statusString}(으)로 변경했습니다`
 
-    notifyByPush({
-      token: order.driver.pushToken,
-      data: { transferStatus: savedOrder.status },
-      notification: { title: `이송상태 변경됨`, body },
-    })
+    if (user.role === UserRole.HERO) {
+      notifyByPush({
+        token: order.driver.pushToken,
+        data: { transferStatus: savedOrder.status },
+        notification: { title: `이송상태 변경됨`, body },
+      })
+    }
+
     // push to driver
     console.log({ orderId: savedOrder.id, status: savedOrder.status })
 

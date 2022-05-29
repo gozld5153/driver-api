@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express'
 import { orderRepository, userRepository } from '../db/repositories'
+import { OrderStatus } from '../entities/Order'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
@@ -31,6 +32,9 @@ const handleRequestPickup = async (req: Request, res: Response) => {
         },
       },
     })
+
+    order.status = pickup ? OrderStatus.PICKUP_REQUESTED : OrderStatus.PICKUP_REJECTED
+    await orderRepository.save(order)
 
     if (!order.driver?.pushToken) throw new Error('driver cannot receive push')
 
