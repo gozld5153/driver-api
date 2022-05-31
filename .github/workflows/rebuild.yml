@@ -1,0 +1,19 @@
+name: rebuild goochoori-api
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  rebuild-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild goochoori-api
+        uses: garygrossgarten/github-action-ssh@release
+        with:
+          command: |
+            cd projects/goochoori-api
+            ls -al
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          privateKey: ${{ secrets.PRIVATE_KEY }}
