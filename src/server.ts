@@ -9,6 +9,8 @@ import admin from 'firebase-admin'
 import passport from 'passport'
 
 import mapRoutes from './routes/map'
+import certificateRoutes from './routes/certificate'
+
 import transferRoutes from './routes/transfer'
 import adminRoutes from './routes/admin'
 import orderRoutes from './routes/order'
@@ -25,6 +27,7 @@ import dataSource from './db/data-source'
 import configureOAuth from './lib/oauthConfig'
 import ensureAdmin from './db/ensureAdmin'
 import ensureClientPublic from './db/ensureClientPublic'
+import path from 'path'
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
@@ -48,6 +51,7 @@ app.use(urlencoded({ extended: false }))
 // oauth
 configureOAuth()
 app.use(passport.initialize())
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 app.use('/auth', authRoutes)
 app.use('/map', mapRoutes)
@@ -61,6 +65,7 @@ app.use('/admin', adminRoutes)
 app.use('/pickup', pickupRoutes)
 app.use('/transfer', transferRoutes)
 app.use('/calculation', calculationRoutes)
+app.use('/certificate', certificateRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT

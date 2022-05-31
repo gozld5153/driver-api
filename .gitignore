@@ -9,3 +9,7 @@ temp/
 **/*.sql
 
 *-firebase-adminsdk-*.json
+
+src/uploads/*
+
+**/*.DS_Store

@@ -36,6 +36,7 @@ const login = async (req: Request, res: Response) => {
       where: { role, isp, ispId },
       relations: {
         organization: true,
+        certification: true,
       },
     })
 
@@ -191,6 +192,7 @@ const handleRefreshToken = async (req: Request, res: Response) => {
       where: { id: payload.id },
       relations: {
         organization: true,
+        certification: true,
       },
     })
     if (!user) throw new Error('cannot find user given token')

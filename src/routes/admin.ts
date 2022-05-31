@@ -113,7 +113,7 @@ const getUser = async (req: Request, res: Response) => {
 
     const users = await userRepository.findOneOrFail({
       where: { role: role as UserRole, id: Number(id) },
-      relations: { organization: true },
+      relations: { organization: true, certification: true },
     })
 
     return res.json(users)
@@ -128,7 +128,13 @@ const getUsers = async (req: Request, res: Response) => {
   try {
     const { role } = req.params
 
-    const users = await userRepository.find({ where: { role: role as UserRole }, relations: { organization: true } })
+    const users = await userRepository.find({
+      where: { role: role as UserRole },
+      relations: {
+        organization: true,
+        certification: true,
+      },
+    })
 
     return res.json(users)
   } catch (err) {

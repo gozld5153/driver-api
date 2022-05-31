@@ -9,6 +9,7 @@ import {
   ManyToOne,
   UpdateDateColumn,
   CreateDateColumn,
+  OneToOne,
 } from 'typeorm'
 import bcrypt from 'bcrypt'
 import { Coord } from '../types/map'
@@ -17,6 +18,7 @@ import Offer from './Offer'
 import Order from './Order'
 import Organization from './Organization'
 import { Exclude, instanceToPlain } from 'class-transformer'
+import Certification from './Certification'
 @Entity('users')
 class User {
   constructor(user?: Partial<User>) {
@@ -89,6 +91,9 @@ class User {
 
   @OneToMany(() => Offer, offer => offer.user)
   offers: Offer[]
+
+  @OneToOne(() => Certification, cert => cert.user)
+  certification: Certification
 
   @Exclude()
   @CreateDateColumn()
