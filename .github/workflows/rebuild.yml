@@ -13,7 +13,14 @@ jobs:
         with:
           command: |
             cd projects/goochoori-api
-            ls -al
+            eval "$(ssh-agent -s)"
+            ssh-add ~/.ssh/goochoori
+            git pull origin main
+            yarn
+            /home/ubuntu/.yarn/bin/pm2 stop goochoori-api
+            yarn typeorm migration:run
+            yarn build
+            /home/ubuntu/.yarn/bin/pm2 stop goochoori-api
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           privateKey: ${{ secrets.PRIVATE_KEY }}
