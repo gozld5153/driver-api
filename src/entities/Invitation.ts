@@ -42,7 +42,6 @@ class Invitation {
   @ManyToOne(() => Organization, organization => organization.profiles)
   organization: Organization
 
-  @Exclude()
   @CreateDateColumn()
   createdAt: Date
 
