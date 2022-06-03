@@ -92,22 +92,19 @@ const handlePostEvaluate = async (req: Request, res: Response) => {
     const user = res.locals.user as User
     const { heroId, certStatus } = req.body
     if (!heroId || !certStatus) throw new BadRequestError('heroId, certStatus')
-
     if (user.role !== UserRole.ADMIN) throw new ForbiddenError('admin only')
 
-    // const cert = await certRepository.findOneOrFail({ where: { id: Number(certId) }, relations: { user: true } })
-    // cert.status = certStatus
-    // await certRepository.save(cert)
     const hero = await userRepository.findOneOrFail({
       where: { id: Number(heroId) },
       relations: { certification: true },
     })
-
     if (!hero) throw new BadRequestError('hero not found')
+
+    hero.status = 'rest'
+    await userRepository.save(hero)
 
     const cert = hero.certification
     cert.status = certStatus
-
     await certRepository.save(cert)
 
     const body =
