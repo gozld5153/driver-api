@@ -7,6 +7,8 @@ import Offer from '../entities/Offer'
 import Invitation from '../entities/Invitation'
 import Invoice from '../entities/Invoice'
 import Certification from '../entities/Certification'
+import LocationRecord from '../entities/LocationRecord'
+import LocationQuery from '../entities/LocationQuery'
 
 export const placeRepository = dataSource.getRepository(Place)
 export const userRepository = dataSource.getRepository(User)
@@ -16,3 +18,5 @@ export const offerRepository = dataSource.getRepository(Offer)
 export const invitationRepository = dataSource.getRepository(Invitation)
 export const invoiceRepository = dataSource.getRepository(Invoice)
 export const certRepository = dataSource.getRepository(Certification)
+export const locationRecordRepository = dataSource.getRepository(LocationRecord)
+export const locationQueryRepository = dataSource.getRepository(LocationQuery)

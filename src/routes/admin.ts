@@ -1,12 +1,21 @@
 import express, { Request, Response } from 'express'
-import { invitationRepository, organizationRepository, userRepository } from '../db/repositories'
+import {
+  invitationRepository,
+  locationQueryRepository,
+  locationRecordRepository,
+  organizationRepository,
+  userRepository,
+} from '../db/repositories'
+import LocationQuery from '../entities/LocationQuery'
 import Organization from '../entities/Organization'
+import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import admin from '../middlewares/admin'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
 import { UserRole } from '../types/user'
+import { decryptAES } from './auth'
 
 const router = express.Router()
 
@@ -164,6 +173,43 @@ const getInvitations = async (req: Request, res: Response) => {
     return handleErrorAndSendResponse(err, res)
   }
 }
+
+const handleGetLocationRecords = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user as User
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress
+
+    const query = new LocationQuery({ user, ip: ip?.toString() ?? 'IP-MISSING' })
+    await locationQueryRepository.save(query)
+
+    const records = await locationRecordRepository.find({ relations: { user: true } })
+    const decrypted = records.map(record => ({
+      ...record,
+      latitude: decryptAES(record.latitude),
+      longitude: decryptAES(record.longitude),
+    }))
+
+    return res.json(decrypted)
+  } catch (err) {
+    console.log(err)
+
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
+const handleGetLocationQueries = async (_req: Request, res: Response) => {
+  try {
+    const queries = await locationQueryRepository.find({ relations: { user: true } })
+    return res.json(queries)
+  } catch (err) {
+    console.log(err)
+
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
+router.get('/locations/records', user, auth, admin, handleGetLocationRecords)
+router.get('/locations/queries', user, auth, admin, handleGetLocationQueries)
 
 router.get('/organizations/:type/:id/invitations', getInvitations)
 router.get('/users/:role', getUsers)

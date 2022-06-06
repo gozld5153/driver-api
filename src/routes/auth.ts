@@ -1,5 +1,5 @@
 import express, { NextFunction, Request, Response } from 'express'
-import { organizationRepository, userRepository } from '../db/repositories'
+import { locationRecordRepository, organizationRepository, userRepository } from '../db/repositories'
 import User from '../entities/User'
 import faker from '../lib/faker'
 import { generateAccessToken, generateRefreshToken } from '../lib/helpers'
@@ -13,6 +13,8 @@ import Organization from '../entities/Organization'
 import bcrypt from 'bcrypt'
 import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
+import LocationRecord from '../entities/LocationRecord'
+import CryptoJS from 'crypto-js'
 
 const router = express.Router()
 
@@ -111,21 +113,40 @@ const phoneToken = async (req: Request, res: Response) => {
   }
 }
 
+export function encryptAES(n: number) {
+  const pass = process.env.AES_PASSPHRASE
+  if (!pass) return 'CANNOT-ENCRYPT'
+  return CryptoJS.AES.encrypt(String(n), pass).toString()
+}
+
+export function decryptAES(en: string) {
+  const pass = process.env.AES_PASSPHRASE
+  if (!pass) return NaN
+  const bytes = CryptoJS.AES.decrypt(en, pass)
+  const text = bytes.toString(CryptoJS.enc.Utf8)
+  return Number(text)
+}
+
 const reportLocation = async (req: Request, res: Response) => {
-  const { latitude, longitude } = req.body
+  const { latitude, longitude, platform } = req.body
   const user: User = res.locals.user
 
   try {
     user.coord = { latitude, longitude }
     await userRepository.save(user)
 
-    console.log('report-location', {
-      userId: user.id,
-      role: user.role,
-      latitude,
-      longitude,
-      when: new Date().getMilliseconds(),
+    // location record
+    const record = new LocationRecord({
+      userRole: user.role as 'driver' | 'hero',
+      latitude: encryptAES(latitude),
+      longitude: encryptAES(longitude),
+      platform,
+      user: user,
     })
+
+    await locationRecordRepository.save(record)
+
+    console.log('location record:', record)
 
     return res.status(200).send()
   } catch (err) {
