@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken'
 import axios from 'axios'
 import { Coord } from '../types/map'
 
+export const delay = (duration: number) => new Promise(resolve => setTimeout(resolve, duration))
+
 export const generateRefreshToken = (user: User) =>
   jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET!, { expiresIn: '15d' })
 // export const generateRefreshToken = (user: User) => jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET!)
