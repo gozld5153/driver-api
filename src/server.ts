@@ -18,6 +18,7 @@ import invitationRoutes from './routes/invitation'
 import placesRoutes from './routes/places'
 import setupRoutes from './routes/setup'
 import authRoutes from './routes/auth'
+import uploadRoutes from './routes/upload'
 import pickupRoutes from './routes/pickup'
 import organizationRoutes from './routes/organization'
 import backdoorRoutes from './routes/backdoor'
@@ -53,6 +54,7 @@ configureOAuth()
 app.use(passport.initialize())
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
+app.use('/upload', uploadRoutes)
 app.use('/auth', authRoutes)
 app.use('/map', mapRoutes)
 app.use('/setup', setupRoutes)

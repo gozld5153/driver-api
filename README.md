@@ -87,3 +87,25 @@ $ sudo du -max /home/ubuntu/ | sort -rn | head -20
 74	/home/ubuntu/.cache/yarn/v6/npm-typescript-4.6.3-integrity/node_modules/typescript
 74	/home/ubuntu/.cache/yarn/v6/npm-typescript-4.6.3-integrity/node_module
 ```
+
+# s3 presigned-url
+
+https://www.youtube.com/playlist?list=PLcla6S01k_nhO6zm0pIpRuEJEbCl2Xy-5
+
+### make IAM Policy
+
+`IAM > Pollicies > Create Policy`
+![create-policy](images/aws-create-policy.png)
+
+### make IAM User
+
+`IAM > Users > Create Users`
+
+- `Programmatic access`를 체크해준다.
+  ![add-user-1](images/aws-add-user-1.png)
+
+- 앞에서 만든 policy 선택
+  ![add-user-2](images/aws-add-user-2.png)
+
+- Access key ID, Secret access key를 복사한다. Secret access key는 이 화면이 지나면 다시 못 보는 것 같음
+  ![add-user-3](images/aws-add-user-3.png)
