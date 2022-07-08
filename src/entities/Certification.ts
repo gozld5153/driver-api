@@ -11,6 +11,7 @@ import {
 import { UserRole } from '../types/user'
 import { instanceToPlain } from 'class-transformer'
 import User from './User'
+
 @Entity('certifications')
 class Certification {
   constructor(cert?: Partial<Certification>) {

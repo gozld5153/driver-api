@@ -109,3 +109,69 @@ https://www.youtube.com/playlist?list=PLcla6S01k_nhO6zm0pIpRuEJEbCl2Xy-5
 
 - Access key ID, Secret access key를 복사한다. Secret access key는 이 화면이 지나면 다시 못 보는 것 같음
   ![add-user-3](images/aws-add-user-3.png)
+
+# s3-lambda round image
+
+# Compositing images - sharp - High performance Node.js image processing
+
+Composite image(s) over the processed (resized, extracted etc.) image.
+
+The images to composite must be the same size or smaller than the processed image. If both `top` and `left` options are provided, they take precedence over `gravity`.
+
+The `blend` option can be one of `clear`, `source`, `over`, `in`, `out`, `atop`, `dest`, `dest-over`, `dest-in`, `dest-out`, `dest-atop`, `xor`, `add`, `saturate`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `colour-dodge`, `color-dodge`, `colour-burn`,`color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`.
+
+More information about blend modes can be found at [https://www.libvips.org/API/current/libvips-conversion.html#VipsBlendMode](https://www.libvips.org/API/current/libvips-conversion.html#VipsBlendMode) and [https://www.cairographics.org/operators/](https://www.cairographics.org/operators/)
+
+### Parameters
+
+- `images` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array) <[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object) >** Ordered list of images to composite
+
+```
+await sharp(background)
+  .composite([
+    { input: layer1, gravity: 'northwest' },
+    { input: layer2, gravity: 'southeast' },
+  ])
+  .toFile('combined.png');
+```
+
+```
+const output = await sharp('input.gif', { animated: true })
+  .composite([
+    { input: 'overlay.png', tile: true, blend: 'saturate' }
+  ])
+  .toBuffer();
+```
+
+```
+sharp('input.png')
+  .rotate(180)
+  .resize(300)
+  .flatten( { background: '#ff6600' } )
+  .composite([{ input: 'overlay.png', gravity: 'southeast' }])
+  .sharpen()
+  .withMetadata()
+  .webp( { quality: 90 } )
+  .toBuffer()
+  .then(function(outputBuffer) {
+    // outputBuffer contains upside down, 300px wide, alpha channel flattened
+    // onto orange background, composited with overlay.png with SE gravity,
+    // sharpened, with metadata, 90% quality WebP image data. Phew!
+  });
+```
+
+- Throws **[Error](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error)** Invalid parameters
+
+Returns **Sharp**
+
+**Meta**
+
+- **since**: 0.22.0
+
+[await originalImage.composite(overlayOptions).toBuffer();](https://github.com/aws-solutions/serverless-image-handler/blob/b6a4f88567ba7a1f2c64978f9a2edd0051c4e938/source/image-handler/image-handler.ts#L163-L192)
+
+[How To Process Images in Node.js With Sharp | DigitalOcean](https://www.digitalocean.com/community/tutorials/how-to-process-images-in-node-js-with-sharp)
+
+[Tutorial: Using an Amazon S3 trigger to create thumbnail images - AWS Lambda](https://docs.aws.amazon.com/lambda/latest/dg/with-s3-tutorial.html)
+
+[S3 + lambda를 이용한 이미지 리사이징](https://kosaf04pyh.tistory.com/334)

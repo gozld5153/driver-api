@@ -20,4 +20,14 @@ router.get('/profile-image-url/:filename', async (req: Request, res: Response) =
   return res.json({ url })
 })
 
+router.get('/certificate-image-url/:filename', async (req: Request, res: Response) => {
+  const { filename } = req.params
+  const url = await s3.getSignedUrlPromise('putObject', {
+    Bucket: 'goochoori',
+    Key: `certificate-images/${filename}`,
+    Expires: 15,
+  })
+  return res.json({ url })
+})
+
 export default router
