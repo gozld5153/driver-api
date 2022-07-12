@@ -19,6 +19,9 @@ import Order from './Order'
 import Organization from './Organization'
 import { Exclude, instanceToPlain } from 'class-transformer'
 import Certification from './Certification'
+import Agreement from './Agreement'
+import Permission from './Permission'
+
 @Entity('users')
 class User {
   constructor(user?: Partial<User>) {
@@ -91,6 +94,12 @@ class User {
 
   @OneToMany(() => Offer, offer => offer.user)
   offers: Offer[]
+
+  @OneToMany(() => Agreement, agr => agr.user)
+  agreements: Agreement[]
+
+  @OneToMany(() => Permission, agr => agr.user)
+  permissions: Permission[]
 
   @OneToOne(() => Certification, cert => cert.user)
   certification: Certification

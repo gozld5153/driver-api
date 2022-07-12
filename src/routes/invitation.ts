@@ -1,9 +1,8 @@
 import { Request, Response, Router } from 'express'
-import { invitationRepository, userRepository } from '../db/repositories'
+import { invitationRepository } from '../db/repositories'
 import Invitation from '../entities/Invitation'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
-import ForbiddenError from '../errors/ForbiddenError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
@@ -11,6 +10,12 @@ import { UserRole } from '../types/user'
 
 const router = Router()
 
+/**
+ * Create a driver invitation from Agency web (only for agency)
+ *
+ * @param req body: name, licenseNumber, adress, phoneNumber, email
+ * @param res json: success(boolean), invitation
+ */
 const createInvitation = async (req: Request, res: Response) => {
   try {
     const user = res.locals.user as User
@@ -33,6 +38,12 @@ const createInvitation = async (req: Request, res: Response) => {
   }
 }
 
+/**
+ * Get all invitations from Agency web (only for agency)
+ *
+ * @param res json: invitation
+ * @returns
+ */
 const getInvitations = async (_req: Request, res: Response) => {
   try {
     const user = res.locals.user as User
@@ -55,6 +66,14 @@ const getInvitations = async (_req: Request, res: Response) => {
   }
 }
 
+/**
+ * Update an invitation from Agency web (only for agency)
+ *
+ * @param id
+ * @param req body: name?, licenseNumber?, address?, phoneNumber?, email?
+ * @param res json: success(boolean), invitation
+ * @returns
+ */
 const updateInvitation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
@@ -78,6 +97,14 @@ const updateInvitation = async (req: Request, res: Response) => {
   }
 }
 
+/**
+ * Delete an invitation from Agency web (only for agency)
+ *
+ * @param id
+ * @param req body: name?, licenseNumber?, address?, phoneNumber?, email?
+ * @param res json: success(boolean), deleted(deleted invitation)
+ * @returns
+ */
 const deleteInvitation = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
@@ -108,6 +135,14 @@ const deleteInvitation = async (req: Request, res: Response) => {
   }
 }
 
+/**
+ * Get an invitation from Agency web (only for agency)
+ *
+ * @param id
+ * @param req body: name?, licenseNumber?, address?, phoneNumber?, email?
+ * @param res json: success(boolean), invitation
+ * @returns
+ */
 const getInvitation = async (req: Request, res: Response) => {
   try {
     // const user = res.locals.user as User
@@ -123,10 +158,17 @@ const getInvitation = async (req: Request, res: Response) => {
   }
 }
 
-const acceptInvitation = async (req: Request, res: Response) => {
+/**
+ * Challenge an invitation from Driver app (driver only)
+ *
+ * @param req body: code
+ * @param res json: an Invitation object with same code
+ * @returns
+ */
+const challengeInvitation = async (req: Request, res: Response) => {
   try {
-    const user = res.locals.user as User
-    if (user.role !== UserRole.DRIVER) throw new ForbiddenError('only driver can accept invitation')
+    // const user = res.locals.user as User
+    // if (user.role !== UserRole.DRIVER) throw new ForbiddenError('only driver can accept invitation')
 
     const { code } = req.body
     if (!code) throw new BadRequestError('code is empty')
@@ -139,20 +181,16 @@ const acceptInvitation = async (req: Request, res: Response) => {
     })
     if (!invitation) throw new BadRequestError('wrong code')
 
-    // update user info using invitation data
-    user.name = invitation.name
-    user.email = invitation.email
-    user.licenseNumber = invitation.licenseNumber
-    user.phoneNumber = invitation.phoneNumber
+    console.log({ invitation })
 
-    user.organization = invitation.organization
-    await userRepository.save(user)
+    // user.organization = invitation.organization
+    // await userRepository.save(user)
 
     // soft delete invitaion
-    await invitationRepository.softRemove(invitation)
+    // await invitationRepository.softRemove(invitation)
 
     // return user so that driver app can update user data
-    return res.json(user)
+    return res.json(invitation)
   } catch (err) {
     console.log(err)
 
@@ -161,7 +199,7 @@ const acceptInvitation = async (req: Request, res: Response) => {
 }
 
 // /invitations
-router.post('/accept', user, auth, acceptInvitation)
+router.post('/accept', challengeInvitation)
 router.post('/', user, auth, createInvitation)
 router.get('/', user, auth, getInvitations)
 router.get('/:id', user, auth, getInvitation)
