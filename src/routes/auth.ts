@@ -30,7 +30,7 @@ const handleMe = async (_req: Request, res: Response) => {
 }
 
 const login = async (req: Request, res: Response) => {
-  const { role, name, email, isp, ispId, profileImage, coord, pushToken }: LoginRequestDTO = req.body
+  const { role, name, email, isp, ispId, profileImage, coord, pushToken, phoneNumber }: LoginRequestDTO = req.body
 
   console.log({ dto: req.body })
   try {
@@ -66,6 +66,7 @@ const login = async (req: Request, res: Response) => {
       ispId,
       coord,
       pushToken,
+      phoneNumber,
       profileImage: profileImage ?? faker.image.avatar(),
     })
 

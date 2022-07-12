@@ -8,6 +8,7 @@ export type LoginRequestDTO = {
   email: string
   isp: IspType
   ispId: string
+  phoneNumber: string
   profileImage: string
   coord: Coord
   pushToken: string
