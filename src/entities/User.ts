@@ -10,6 +10,7 @@ import {
   UpdateDateColumn,
   CreateDateColumn,
   OneToOne,
+  JoinColumn,
 } from 'typeorm'
 import bcrypt from 'bcrypt'
 import { Coord } from '../types/map'
@@ -21,6 +22,7 @@ import { Exclude, instanceToPlain } from 'class-transformer'
 import Certification from './Certification'
 import Agreement from './Agreement'
 import Permission from './Permission'
+import Bank from './Bank'
 
 @Entity('users')
 class User {
@@ -95,14 +97,21 @@ class User {
   @OneToMany(() => Offer, offer => offer.user)
   offers: Offer[]
 
-  @OneToMany(() => Agreement, agr => agr.user)
+  @OneToMany(() => Agreement, agr => agr.user, { cascade: ['insert', 'update'] })
   agreements: Agreement[]
 
   @OneToMany(() => Permission, agr => agr.user)
   permissions: Permission[]
 
-  @OneToOne(() => Certification, cert => cert.user)
+  @OneToOne(() => Certification, cert => cert.user, { cascade: ['insert', 'update'] })
   certification: Certification
+
+  @OneToOne(() => Bank, bank => bank.user, { cascade: ['insert', 'update'] })
+  bank: Bank
+
+  @OneToOne(() => User, { cascade: ['insert', 'update'] })
+  @JoinColumn()
+  friend: User
 
   @Exclude()
   @CreateDateColumn()
@@ -122,12 +131,6 @@ class User {
   @BeforeUpdate()
   async hashPassword() {
     if (this.password) this.password = await bcrypt.hash(this.password, 6)
-  }
-
-  @BeforeInsert()
-  ensureProfileImage() {
-    if (!this.profileImage)
-      this.profileImage = `https://randomuser.me/api/portraits/lego/${Math.floor(Math.random() * 10)}.jpg`
   }
 
   toJSON() {

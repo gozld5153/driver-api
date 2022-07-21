@@ -15,6 +15,9 @@ import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import LocationRecord from '../entities/LocationRecord'
 import CryptoJS from 'crypto-js'
+import Agreement from '../entities/Agreement'
+import Bank from '../entities/Bank'
+import Certification from '../entities/Certification'
 
 const router = express.Router()
 
@@ -82,6 +85,187 @@ const login = async (req: Request, res: Response) => {
     }
 
     return res.json(responseDTO)
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+const loginHero = async (req: Request, res: Response) => {
+  const { role, isp, ispId, pushToken }: LoginRequestDTO = req.body
+
+  console.log({ dto: req.body })
+  try {
+    const foundUser = await userRepository.findOne({
+      where: { role, isp, ispId },
+      relations: {
+        agreements: true,
+        certification: true,
+        bank: true,
+      },
+    })
+
+    if (!foundUser) return res.json({ needToRegister: true })
+
+    const accessToken = generateAccessToken(foundUser)
+    const refreshToken = generateRefreshToken(foundUser)
+
+    if (pushToken) {
+      foundUser.pushToken = pushToken
+      await userRepository.save(foundUser)
+    }
+
+    return res.json({
+      user: foundUser,
+      accessToken,
+      refreshToken,
+    })
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+/**
+
+{
+  "id": -1,
+  "name": "신모범",
+  "email": "",
+  "accessToken": "",
+  "pushToken": "eRw4xRFu3E72jd8_7nm7Ee:APA91bE8VG0dl9r7_tNzyfYqyHC7IhRf3d8MxEhnFEHUdAgZmuoaVt6mYvSCgO4OmAe5GyOtsdH0owhDmKie410egz92W1v8C-rcKMSA2siz2kOfrOLWWL68XfOJM1T6-srBkMnLlHg-",
+  "coord": {
+    "latitude": 37.610430686098304,
+    "longitude": 127.03794108254262
+  },
+  "profileImage": "https://goochoori.s3.ap-northeast-2.amazonaws.com/profile-images/961591E6-EE84-4EE7-ACFE-B841DBA0CFCF.jpg",
+  "status": "rest",
+  "auth": {
+    "isp": "naver",
+    "ispId": "-yeA5hmNuWVGIfsrmlBO2IrKBRIrbL347YYNKxnrk4Q"
+  },
+  "agreements": {
+    "location": true,
+    "service": true,
+    "private": true,
+    "marketing": false
+  },
+  "friendPhoneNumber": "01072313805",
+  "bank": {
+    "bankName": "신한",
+    "bankAccount": "110139358016"
+  },
+  "certification": {
+    "licenseNumber": "123456789",
+    "imageUrl": "https://goochoori.s3.ap-northeast-2.amazonaws.com/certificate-images/EF213A5C-CC0D-4152-AACF-90AF334EDBAF.jpg",
+    "status": "not-registred"
+  }
+
+ */
+type RegisterHeroReqDTO = {
+  role: UserRole
+  name: string
+  email: string
+  pushToken: string
+  coord: {
+    latitude: string
+    longitude: string
+  }
+  profileImage: string
+  status: 'rest'
+  auth: {
+    isp: IspType
+    ispId: string
+  }
+  agreements: {
+    location: boolean
+    service: boolean
+    privacy: boolean
+    marketing: boolean
+  }
+  phoneNumber: string
+  friendPhoneNumber: string
+  bank: {
+    bankName: string
+    bankAccount: string
+  }
+  certification: {
+    licenseNumber: string
+    imageUrl: string
+    status: string
+  }
+}
+
+const registerHero = async (req: Request, res: Response) => {
+  const {
+    role,
+    name,
+    email,
+    pushToken,
+    coord,
+    profileImage,
+    status,
+    auth,
+    phoneNumber,
+    friendPhoneNumber,
+    agreements,
+    bank,
+    certification,
+  }: RegisterHeroReqDTO = req.body
+
+  try {
+    const user = new User({
+      role,
+      isp: auth.isp,
+      ispId: auth.ispId,
+      name,
+      email,
+      pushToken,
+      coord: { latitude: Number(coord.latitude), longitude: Number(coord.longitude) },
+      profileImage,
+      status,
+      phoneNumber,
+    })
+
+    if (friendPhoneNumber) {
+      const friend = await userRepository.findOneBy({
+        phoneNumber: friendPhoneNumber,
+      })
+
+      if (friend) user.friend = friend
+    }
+
+    const { location, marketing, privacy, service } = agreements
+    const agreeLocation = new Agreement({ type: 'location', agreed: location })
+    const agreeService = new Agreement({ type: 'service', agreed: service })
+    const agreePrivacy = new Agreement({ type: 'privacy', agreed: privacy })
+    const agreeMarketing = new Agreement({ type: 'marketing', agreed: marketing })
+
+    user.agreements = []
+    user.agreements.push(agreeLocation)
+    user.agreements.push(agreeService)
+    user.agreements.push(agreePrivacy)
+    user.agreements.push(agreeMarketing)
+
+    user.bank = new Bank({ bankAccount: bank.bankAccount, bankName: bank.bankName })
+    user.certification = new Certification({
+      status: 'verifying',
+      licenseNumber: certification.licenseNumber,
+      imageUrl: certification.imageUrl,
+    })
+
+    await userRepository.save(user)
+
+    const accessToken = generateAccessToken(user)
+    const refreshToken = generateRefreshToken(user)
+
+    return res.json({
+      user,
+      accessToken,
+      refreshToken,
+    })
   } catch (err) {
     console.log(err)
 
@@ -423,6 +607,9 @@ router.post('/refresh-push-token', auth, user, handleRefreshPushToken)
 // for mobile
 router.post('/login', login)
 router.get('/logout', user, logout)
+
+router.post('/login-hero', loginHero)
+router.post('/register-hero', registerHero)
 
 // for public client
 router.post('/public-register', registerPublicClient)

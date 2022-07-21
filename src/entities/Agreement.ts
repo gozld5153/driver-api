@@ -12,7 +12,7 @@ class Agreement {
   id: number
 
   @Column()
-  type: 'service' | 'camera' | 'album' | 'notification'
+  type: 'service' | 'privacy' | 'location' | 'marketing'
 
   @Column()
   agreed: boolean
