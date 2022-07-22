@@ -198,8 +198,30 @@ const challengeInvitation = async (req: Request, res: Response) => {
   }
 }
 
+const handleChallengeInvitation = async (req: Request, res: Response) => {
+  try {
+    const { code } = req.body
+    if (!code) throw new BadRequestError('code is empty')
+
+    const invitation = await invitationRepository.findOneOrFail({
+      where: { code },
+      relations: {
+        organization: true,
+      },
+    })
+    if (!invitation) throw new BadRequestError('wrong code')
+
+    return res.json(invitation)
+  } catch (err) {
+    console.log(err)
+
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
 // /invitations
 router.post('/accept', challengeInvitation)
+router.post('/challenge', handleChallengeInvitation)
 router.post('/', user, auth, createInvitation)
 router.get('/', user, auth, getInvitations)
 router.get('/:id', user, auth, getInvitation)

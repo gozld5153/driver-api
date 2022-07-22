@@ -18,6 +18,8 @@ import CryptoJS from 'crypto-js'
 import Agreement from '../entities/Agreement'
 import Bank from '../entities/Bank'
 import Certification from '../entities/Certification'
+import keyValStore from '../services/keyValStore'
+import sendSMS from '../lib/sendSMS'
 
 const router = express.Router()
 
@@ -92,10 +94,9 @@ const login = async (req: Request, res: Response) => {
   }
 }
 
-const loginHero = async (req: Request, res: Response) => {
+const handleMobileLogin = async (req: Request, res: Response) => {
   const { role, isp, ispId, pushToken }: LoginRequestDTO = req.body
 
-  console.log({ dto: req.body })
   try {
     const foundUser = await userRepository.findOne({
       where: { role, isp, ispId },
@@ -128,42 +129,6 @@ const loginHero = async (req: Request, res: Response) => {
   }
 }
 
-/**
-
-{
-  "id": -1,
-  "name": "신모범",
-  "email": "",
-  "accessToken": "",
-  "pushToken": "eRw4xRFu3E72jd8_7nm7Ee:APA91bE8VG0dl9r7_tNzyfYqyHC7IhRf3d8MxEhnFEHUdAgZmuoaVt6mYvSCgO4OmAe5GyOtsdH0owhDmKie410egz92W1v8C-rcKMSA2siz2kOfrOLWWL68XfOJM1T6-srBkMnLlHg-",
-  "coord": {
-    "latitude": 37.610430686098304,
-    "longitude": 127.03794108254262
-  },
-  "profileImage": "https://goochoori.s3.ap-northeast-2.amazonaws.com/profile-images/961591E6-EE84-4EE7-ACFE-B841DBA0CFCF.jpg",
-  "status": "rest",
-  "auth": {
-    "isp": "naver",
-    "ispId": "-yeA5hmNuWVGIfsrmlBO2IrKBRIrbL347YYNKxnrk4Q"
-  },
-  "agreements": {
-    "location": true,
-    "service": true,
-    "private": true,
-    "marketing": false
-  },
-  "friendPhoneNumber": "01072313805",
-  "bank": {
-    "bankName": "신한",
-    "bankAccount": "110139358016"
-  },
-  "certification": {
-    "licenseNumber": "123456789",
-    "imageUrl": "https://goochoori.s3.ap-northeast-2.amazonaws.com/certificate-images/EF213A5C-CC0D-4152-AACF-90AF334EDBAF.jpg",
-    "status": "not-registred"
-  }
-
- */
 type RegisterHeroReqDTO = {
   role: UserRole
   name: string
@@ -599,6 +564,38 @@ const handleRefreshPushToken = async (req: Request, res: Response) => {
   }
 }
 
+export const getRandom6Digits = () => Math.floor(100000 + Math.random() * 900000)
+
+const handleRequestPhoneCode = async (req: Request<any, any, { phoneNumber: string }>, res: Response) => {
+  try {
+    const { phoneNumber } = req.body
+    const code = getRandom6Digits()
+    await keyValStore.set(phoneNumber, code, 15 * 1000)
+    const smsResult = await sendSMS(phoneNumber, `[구출이] 인증번호는 ${code} 입니다.`)
+
+    return res.json({ success: smsResult })
+  } catch (err) {
+    console.log(err)
+
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
+const handleAnswerPhoneCode = async (req: Request<any, any, { phoneNumber: string; code: string }>, res: Response) => {
+  try {
+    const { phoneNumber, code } = req.body
+    const storedCode = await keyValStore.get(phoneNumber)
+
+    console.log({ phoneNumber, code, storedCode })
+
+    return res.json({ match: Number(code) === storedCode })
+  } catch (err) {
+    console.log(err)
+
+    return handleErrorAndSendResponse(err, res)
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
@@ -608,8 +605,13 @@ router.post('/refresh-push-token', auth, user, handleRefreshPushToken)
 router.post('/login', login)
 router.get('/logout', user, logout)
 
-router.post('/login-hero', loginHero)
+router.post('/login-hero', handleMobileLogin)
+router.post('/login-driver', handleMobileLogin)
+
 router.post('/register-hero', registerHero)
+
+router.post('/request-phone-code', handleRequestPhoneCode)
+router.post('/answer-phone-code', handleAnswerPhoneCode)
 
 // for public client
 router.post('/public-register', registerPublicClient)
