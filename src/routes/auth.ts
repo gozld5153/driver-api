@@ -596,6 +596,70 @@ const handleAnswerPhoneCode = async (req: Request<any, any, { phoneNumber: strin
   }
 }
 
+type RegisterDriverDTO = RegisterHeroReqDTO & { orgId: number }
+
+const registerDriver = async (req: Request, res: Response) => {
+  const {
+    role,
+    name,
+    email,
+    pushToken,
+    coord,
+    profileImage,
+    status,
+    auth,
+    phoneNumber,
+    agreements,
+    orgId,
+  }: RegisterDriverDTO = req.body
+
+  try {
+    const org = await organizationRepository.findOneBy({ id: orgId })
+    if (!org) throw new BadRequestError('There is no organization given id: ' + orgId)
+
+    const user = new User({
+      role,
+      isp: auth.isp,
+      ispId: auth.ispId,
+      name,
+      email,
+      pushToken,
+      coord: { latitude: Number(coord.latitude), longitude: Number(coord.longitude) },
+      profileImage,
+      status,
+      phoneNumber,
+      organization: org,
+    })
+
+    const { location, marketing, privacy, service } = agreements
+    const agreeLocation = new Agreement({ type: 'location', agreed: location })
+    const agreeService = new Agreement({ type: 'service', agreed: service })
+    const agreePrivacy = new Agreement({ type: 'privacy', agreed: privacy })
+    const agreeMarketing = new Agreement({ type: 'marketing', agreed: marketing })
+
+    user.agreements = []
+    user.agreements.push(agreeLocation)
+    user.agreements.push(agreeService)
+    user.agreements.push(agreePrivacy)
+    user.agreements.push(agreeMarketing)
+
+    await userRepository.save(user)
+
+    const accessToken = generateAccessToken(user)
+    const refreshToken = generateRefreshToken(user)
+
+    return res.json({
+      user,
+      accessToken,
+      refreshToken,
+    })
+  } catch (err) {
+    console.log(err)
+
+    return res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
@@ -609,6 +673,7 @@ router.post('/login-hero', handleMobileLogin)
 router.post('/login-driver', handleMobileLogin)
 
 router.post('/register-hero', registerHero)
+router.post('/register-driver', registerDriver)
 
 router.post('/request-phone-code', handleRequestPhoneCode)
 router.post('/answer-phone-code', handleAnswerPhoneCode)

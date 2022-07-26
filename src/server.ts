@@ -23,6 +23,7 @@ import pickupRoutes from './routes/pickup'
 import organizationRoutes from './routes/organization'
 import backdoorRoutes from './routes/backdoor'
 import calculationRoutes from './routes/calculation'
+import reservationRoutes from './routes/reservation'
 
 import dataSource from './db/data-source'
 import configureOAuth from './lib/oauthConfig'
@@ -68,6 +69,7 @@ app.use('/pickup', pickupRoutes)
 app.use('/transfer', transferRoutes)
 app.use('/calculation', calculationRoutes)
 app.use('/certificate', certificateRoutes)
+app.use('/reservations', reservationRoutes)
 app.get('/', (_, res) => res.send('hello'))
 
 const PORT = process.env.PORT
