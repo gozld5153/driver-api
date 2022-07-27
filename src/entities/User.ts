@@ -23,6 +23,7 @@ import Certification from './Certification'
 import Agreement from './Agreement'
 import Permission from './Permission'
 import Bank from './Bank'
+import Reservation from './Reservation'
 
 @Entity('users')
 class User {
@@ -112,6 +113,9 @@ class User {
   @OneToOne(() => User, { cascade: ['insert', 'update'] })
   @JoinColumn()
   friend: User
+
+  @OneToMany(() => Reservation, res => res.driver)
+  reservations: Reservation[]
 
   @Exclude()
   @CreateDateColumn()

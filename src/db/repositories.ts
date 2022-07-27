@@ -9,6 +9,7 @@ import Invoice from '../entities/Invoice'
 import Certification from '../entities/Certification'
 import LocationRecord from '../entities/LocationRecord'
 import LocationQuery from '../entities/LocationQuery'
+import Reservation from '../entities/Reservation'
 
 export const placeRepository = dataSource.getRepository(Place)
 export const userRepository = dataSource.getRepository(User)
@@ -20,3 +21,4 @@ export const invoiceRepository = dataSource.getRepository(Invoice)
 export const certRepository = dataSource.getRepository(Certification)
 export const locationRecordRepository = dataSource.getRepository(LocationRecord)
 export const locationQueryRepository = dataSource.getRepository(LocationQuery)
+export const reservationRepository = dataSource.getRepository(Reservation)
