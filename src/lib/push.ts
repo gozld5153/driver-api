@@ -35,4 +35,38 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
   }
 }
 
+export type FibaseMultiPushType = { tokens: string[]; data: any; notification: any }
+export const fibaseMultiPush = async ({ tokens, data, notification }: FibaseMultiPushType) => {
+  try {
+    const pushResult = await messaging().sendMulticast({
+      tokens,
+      notification,
+      data,
+      android: {
+        notification: {
+          channelId: 'riders',
+          vibrateTimingsMillis: [0, 500, 500, 500],
+          priority: 'high',
+          defaultVibrateTimings: false,
+        },
+        priority: 'high',
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            category: 'riders',
+            contentAvailable: true,
+          },
+        },
+      },
+    })
+
+    return pushResult
+  } catch (error) {
+    console.log({ 'notifyByPush error': error })
+    return 'notifyByPush error'
+  }
+}
+
 export default notifyByPush
