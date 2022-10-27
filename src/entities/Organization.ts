@@ -54,6 +54,12 @@ class Organization {
   @Column({ type: 'point', spatialFeatureType: 'Point', srid: 4326 })
   point: string
 
+  @Column({ nullable: true })
+  certificate?: string
+
+  @Column()
+  affiliation: string
+
   @Column({ default: false })
   isVerified: boolean
 

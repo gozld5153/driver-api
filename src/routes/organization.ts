@@ -12,7 +12,8 @@ const router = Router()
 
 const registerOrganization = async (req: Request, res: Response) => {
   try {
-    const { name, licenseNumber, address, profileImage, email, phoneNumber, type } = req.body as Partial<Organization>
+    const { name, licenseNumber, address, profileImage, email, phoneNumber, type, certificate, affiliation } =
+      req.body as Partial<Organization>
     if (!name || !licenseNumber || !address || !email || !phoneNumber || !type)
       throw new BadRequestError('name, licenseNumber, address, profileImage, email, phoneNumber, type is mandatory')
 
@@ -34,7 +35,17 @@ const registerOrganization = async (req: Request, res: Response) => {
     })
     if (foundOrg) throw new BadRequestError('the organization already exists')
 
-    const org = new Organization({ name, licenseNumber, address, profileImage, email, phoneNumber, type })
+    const org = new Organization({
+      name,
+      licenseNumber,
+      address,
+      profileImage,
+      email,
+      phoneNumber,
+      type,
+      certificate,
+      affiliation,
+    })
     await organizationRepository.save(org)
 
     user.organization = org
@@ -49,7 +60,7 @@ const registerOrganization = async (req: Request, res: Response) => {
 
 const updateOrganization = async (req: Request, res: Response) => {
   try {
-    const { id, name, licenseNumber, address, phoneNumber, email, type } = req.body
+    const { id, name, licenseNumber, address, phoneNumber, email, type, certificate, affiliation } = req.body
     if (!id) throw new BadRequestError('id is mandatory')
 
     const user = res.locals.user as User
@@ -67,6 +78,8 @@ const updateOrganization = async (req: Request, res: Response) => {
     if (address) org.address = address
     if (phoneNumber) org.phoneNumber = phoneNumber
     if (email) org.email = email
+    if (certificate) org.certificate = certificate
+    if (affiliation) org.affiliation = affiliation
 
     await organizationRepository.save(org)
 
