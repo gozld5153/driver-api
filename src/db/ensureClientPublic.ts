@@ -18,6 +18,7 @@ const ensureClientPublic = async () => {
       phoneNumber: '010-2345-8950',
       address: '서울 종로구 대학로 101',
       isVerified: true,
+      affiliation: '서울',
     })
     await organizationRepository.save(hospital)
 

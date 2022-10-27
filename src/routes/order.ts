@@ -64,13 +64,25 @@ const handleRequestOrder = async (req: Request, res: Response) => {
     const routes = await getRouteFromCoords(departure, destination)
     if (routes) await keyValStore.set(String(order.id), routes)
 
+    const driverUsers = await userRepository.find({
+      where: { role: UserRole.DRIVER, organization: { affiliation: Not(user.organization.affiliation) } },
+      relations: { organization: true },
+    })
+
+    const notSameAffiliationUserIds = driverUsers.map(du => du.id)
+
+    console.log({ notSameAffiliationUserIds })
+
     const driver: (User & { distance: number }) | undefined = await userRepository
-      .createQueryBuilder()
-      .select(`*, st_distance_sphere(location, st_geomfromtext('${departure?.point}', 4326)) as distance`)
+      .createQueryBuilder('user')
+      .select(`*, st_distance_sphere(user.location, st_geomfromtext('${departure?.point}', 4326)) as distance`)
       .where('role=:role', { role: UserRole.DRIVER })
       .andWhere('status=:status', { status: 'ready' })
+      .andWhere({ id: Not(In(notSameAffiliationUserIds)) })
       .orderBy('distance')
       .getRawOne()
+
+    console.log('findDriver: ', JSON.stringify(driver, null, 2))
 
     if (!driver) {
       order.status = OrderStatus.NO_DRIVER
@@ -126,7 +138,9 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
           id: offerId,
         },
         relations: {
-          user: true,
+          user: {
+            organization: true,
+          },
           order: {
             offers: {
               user: true,
@@ -149,7 +163,20 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
           notification: { title: '시간초과로 취소되었습니다.', body: `offerId: ${offer.id}` },
         })
 
-        const workerIds = offer.order.offers.filter(of => of.type === offer.type).map(offer => offer.user.id)
+        const notSameAffiliationDrivers = await userRepository.find({
+          relations: {
+            organization: true,
+          },
+          where: {
+            organization: {
+              affiliation: Not(offer.user.organization.affiliation),
+            },
+            role: UserRole.DRIVER,
+          },
+        })
+
+        let workerIds = offer.order.offers.filter(of => of.type === offer.type).map(offer => offer.user.id)
+        workerIds = [...workerIds, ...notSameAffiliationDrivers.map(d => d.id)]
         console.log({ workers: workerIds })
 
         // find other worker (driver or hero) and push
@@ -217,7 +244,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
         id: offerId,
       },
       relations: {
-        user: true,
+        user: { organization: true },
         order: {
           destination: true,
           departure: true,
@@ -228,12 +255,25 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       },
     })
 
+    console.log('offer: ', JSON.stringify(offer, null, 2))
+
     if (response === 'reject') {
       offer.status = OfferStatus.REJECTED
       await offerRepository.save(offer)
 
-      const workerIds = offer.order.offers.filter(of => of.type === offer.type).map(of => of.user.id)
-      console.log({ workers: workerIds })
+      const notSameAffiliationdrivers = await userRepository.find({
+        relations: { organization: true },
+        where: {
+          organization: {
+            affiliation: Not(user.organization.affiliation),
+          },
+          role: UserRole.DRIVER,
+        },
+      })
+
+      let workerIds = offer.order.offers.filter(of => of.type === offer.type).map(of => of.user.id)
+      workerIds = [...workerIds, ...notSameAffiliationdrivers.map(d => d.id)]
+      console.log({ workersIncludeNotSameAffiliation: workerIds })
 
       // find other driver and push
       const worker: (User & { distance: number }) | undefined = await userRepository

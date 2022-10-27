@@ -80,11 +80,12 @@ const updateOrganization = async (req: Request, res: Response) => {
 const registerOrganization = async (req: Request, res: Response) => {
   try {
     const { type } = req.params
-    const { name, licenseNumber, address, profileImage, email, phoneNumber, coordinate } =
+    const { id, password } = req.body as { id: string; password: string }
+    const { name, licenseNumber, address, profileImage, email, phoneNumber, coordinate, affiliation } =
       req.body as Partial<Organization>
-    if (!type || !name || !licenseNumber || !address || !email || !phoneNumber)
+    if (!type || !name || !licenseNumber || !address || !email || !phoneNumber || !affiliation)
       throw new BadRequestError(
-        'type, name, licenseNumber, address, profileImage, email, phoneNumber, type is mandatory',
+        'type, name, licenseNumber, address, profileImage, email, phoneNumber, type, affiliation is mandatory',
       )
 
     const foundOrg = await organizationRepository.findOneBy({
@@ -106,10 +107,23 @@ const registerOrganization = async (req: Request, res: Response) => {
       email,
       phoneNumber,
       coordinate,
+      affiliation,
       type: type as any,
       isVerified: false,
     })
     await organizationRepository.save(org)
+
+    if (type === 'hospital') {
+      const publicClient = new User({
+        identifier: id,
+        name,
+        password,
+        role: UserRole.CLIENT_PUBLIC,
+        organization: org,
+      })
+
+      await userRepository.save(publicClient)
+    }
 
     return res.json({ success: true, organization: org })
   } catch (err) {
