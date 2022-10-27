@@ -12,7 +12,7 @@ export default new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
-  synchronize: false,
+  synchronize: true,
   logger: 'advanced-console',
   logging: false, // process.env.NODE_ENV === 'development',
   entities: [rootDir + '/entities/**/*{.ts,.js}'],
