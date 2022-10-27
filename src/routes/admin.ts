@@ -80,7 +80,8 @@ const updateOrganization = async (req: Request, res: Response) => {
 const registerOrganization = async (req: Request, res: Response) => {
   try {
     const { type } = req.params
-    const { name, licenseNumber, address, profileImage, email, phoneNumber } = req.body as Partial<Organization>
+    const { name, licenseNumber, address, profileImage, email, phoneNumber, coordinate } =
+      req.body as Partial<Organization>
     if (!type || !name || !licenseNumber || !address || !email || !phoneNumber)
       throw new BadRequestError(
         'type, name, licenseNumber, address, profileImage, email, phoneNumber, type is mandatory',
@@ -104,6 +105,7 @@ const registerOrganization = async (req: Request, res: Response) => {
       profileImage,
       email,
       phoneNumber,
+      coordinate,
       type: type as any,
       isVerified: false,
     })

@@ -58,6 +58,7 @@
     "start": "NODE_ENV=production node build/server.js",
     "dev": "ts-node-dev src/server.ts",
     "typeorm": "typeorm-ts-node-commonjs -d src/db/data-source.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "db:reset": "typeorm-ts-node-commonjs -d src/db/data-source.ts schema:drop"
   }
 }

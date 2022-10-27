@@ -1,5 +1,6 @@
 import {
   BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -12,6 +13,10 @@ import Invitation from './Invitation'
 import User from './User'
 
 type OrganizationType = 'hospital' | 'agency'
+type Coordinate = {
+  longitude: string
+  latitude: string
+}
 
 @Entity('organizations')
 class Organization {
@@ -43,6 +48,12 @@ class Organization {
   @Column()
   address: string
 
+  @Column({ type: 'simple-json', nullable: true })
+  coordinate?: Coordinate
+
+  @Column({ type: 'point', spatialFeatureType: 'Point', srid: 4326 })
+  point: string
+
   @Column({ default: false })
   isVerified: boolean
 
@@ -60,6 +71,14 @@ class Organization {
 
   @OneToMany(() => Invitation, profile => profile.organization)
   profiles: Invitation[]
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  convertCoordToPoint() {
+    this.point = this.coordinate
+      ? `POINT(${Number(this.coordinate.latitude)} ${Number(this.coordinate.longitude)})`
+      : 'POINT(0 0)'
+  }
 
   @BeforeInsert()
   ensureProfileImage() {

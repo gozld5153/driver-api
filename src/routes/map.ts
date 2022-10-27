@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express'
 import { Raw } from 'typeorm'
-import { placeRepository } from '../db/repositories'
+import { organizationRepository, placeRepository } from '../db/repositories'
 import { Coord } from '../types/map'
 
 const router = express.Router()
@@ -9,11 +9,13 @@ const camera = async (req: Request, res: Response) => {
   const { region }: { region: Coord[] } = req.body
   try {
     const polygon = `POLYGON((${region.map(coord => `${coord.latitude} ${coord.longitude}`).toString()}))`
-    const places = await placeRepository.findBy({
+
+    const organization = await organizationRepository.findBy({
       point: Raw(point => `MBRIntersects(ST_GeomFromText('${polygon}', 4326), ${point})`),
+      isVerified: true,
     })
 
-    return res.json(places)
+    return res.json(organization)
   } catch (err) {
     console.log(err)
 
