@@ -10,6 +10,7 @@ import Certification from '../entities/Certification'
 import LocationRecord from '../entities/LocationRecord'
 import LocationQuery from '../entities/LocationQuery'
 import Reservation from '../entities/Reservation'
+import ReasonSecession from '../entities/ResonSecession'
 
 export const placeRepository = dataSource.getRepository(Place)
 export const userRepository = dataSource.getRepository(User)
@@ -22,3 +23,4 @@ export const certRepository = dataSource.getRepository(Certification)
 export const locationRecordRepository = dataSource.getRepository(LocationRecord)
 export const locationQueryRepository = dataSource.getRepository(LocationQuery)
 export const reservationRepository = dataSource.getRepository(Reservation)
+export const reasonSecessionRepository = dataSource.getRepository(ReasonSecession)

@@ -1,5 +1,10 @@
 import express, { NextFunction, Request, Response } from 'express'
-import { locationRecordRepository, organizationRepository, userRepository } from '../db/repositories'
+import {
+  locationRecordRepository,
+  organizationRepository,
+  reasonSecessionRepository,
+  userRepository,
+} from '../db/repositories'
 import User from '../entities/User'
 import faker from '../lib/faker'
 import { generateAccessToken, generateRefreshToken } from '../lib/helpers'
@@ -20,6 +25,7 @@ import Agreement from '../entities/Agreement'
 import Certification from '../entities/Certification'
 import keyValStore from '../services/keyValStore'
 import sendSMS from '../lib/sendSMS'
+import ReasonSecession from '../entities/ResonSecession'
 
 const router = express.Router()
 
@@ -668,10 +674,28 @@ const handleSecession = async (_: Request, res: Response) => {
 
     await userRepository.softRemove(findUser)
 
-    res.json('test good req!')
+    res.json('sucess')
   } catch (err) {
     console.log(err)
     res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
+const handleSecessionReason = async (req: Request, res: Response) => {
+  try {
+    const user = res.locals.user
+    const reason = req.body.reason
+
+    const rs = new ReasonSecession({
+      user,
+      reason,
+    })
+
+    await reasonSecessionRepository.save(rs)
+    res.json({ result: rs })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
   }
 }
 
@@ -694,6 +718,7 @@ router.post('/request-phone-code', handleRequestPhoneCode)
 router.post('/answer-phone-code', handleAnswerPhoneCode)
 
 router.get('/secession', user, auth, handleSecession)
+router.post('/secession/reason', user, auth, handleSecessionReason)
 
 // for public client
 router.post('/public-register', registerPublicClient)

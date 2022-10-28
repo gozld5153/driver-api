@@ -25,6 +25,7 @@ import Agreement from './Agreement'
 import Permission from './Permission'
 import Bank from './Bank'
 import Reservation from './Reservation'
+import ReasonSecession from './ResonSecession'
 
 @Entity('users')
 class User {
@@ -114,6 +115,9 @@ class User {
   @OneToOne(() => User, { cascade: ['insert', 'update'] })
   @JoinColumn()
   friend: User
+
+  @OneToOne(() => ReasonSecession, rs => rs.user, { cascade: ['insert'] })
+  reasonSecession: ReasonSecession
 
   @OneToMany(() => Reservation, res => res.driver)
   reservations: Reservation[]
