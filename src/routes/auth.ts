@@ -16,7 +16,7 @@ import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import LocationRecord from '../entities/LocationRecord'
 import CryptoJS from 'crypto-js'
 import Agreement from '../entities/Agreement'
-import Bank from '../entities/Bank'
+// *import Bank from '../entities/Bank'
 import Certification from '../entities/Certification'
 import keyValStore from '../services/keyValStore'
 import sendSMS from '../lib/sendSMS'
@@ -176,7 +176,7 @@ const registerHero = async (req: Request, res: Response) => {
     phoneNumber,
     friendPhoneNumber,
     agreements,
-    bank,
+    // *bank,
     certification,
   }: RegisterHeroReqDTO = req.body
 
@@ -214,7 +214,7 @@ const registerHero = async (req: Request, res: Response) => {
     user.agreements.push(agreePrivacy)
     user.agreements.push(agreeMarketing)
 
-    user.bank = new Bank({ bankAccount: bank.bankAccount, bankName: bank.bankName })
+    // *user.bank = new Bank({ bankAccount: bank.bankAccount, bankName: bank.bankName })
     user.certification = new Certification({
       status: 'verifying',
       licenseNumber: certification.licenseNumber,
@@ -660,6 +660,21 @@ const registerDriver = async (req: Request, res: Response) => {
   }
 }
 
+const handleSecession = async (_: Request, res: Response) => {
+  try {
+    const user = res.locals.user
+
+    const findUser = await userRepository.findOneByOrFail({ id: user.id })
+
+    await userRepository.softRemove(findUser)
+
+    res.json('test good req!')
+  } catch (err) {
+    console.log(err)
+    res.status(500).json({ error: 'Something went wrong.' })
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
@@ -677,6 +692,8 @@ router.post('/register-driver', registerDriver)
 
 router.post('/request-phone-code', handleRequestPhoneCode)
 router.post('/answer-phone-code', handleAnswerPhoneCode)
+
+router.get('/secession', user, auth, handleSecession)
 
 // for public client
 router.post('/public-register', registerPublicClient)

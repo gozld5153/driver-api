@@ -25,8 +25,8 @@ const handlePostTotalFee = async (req: Request, res: Response) => {
     if (order.invoice) {
       order.invoice.totalFee = fee
       order.invoice.driverFee = fee * 0.7
-      order.invoice.heroFee = fee * 0.2
-      order.invoice.goochooriFee = fee * 0.1
+      order.invoice.heroFee = fee * 0.3
+      order.invoice.goochooriFee = fee * 0
 
       await invoiceRepository.save(order.invoice)
     }
@@ -38,8 +38,8 @@ const handlePostTotalFee = async (req: Request, res: Response) => {
         type: 'driver-hero',
         totalFee: fee,
         driverFee: fee * 0.7,
-        heroFee: fee * 0.2,
-        goochooriFee: fee * 0.1,
+        heroFee: fee * 0.3,
+        goochooriFee: fee * 0,
         transferStartedAt: order.departedAt ?? order.loadedAt,
         transferFinishedAt: order.arrivedAt,
         order,

@@ -11,6 +11,7 @@ import {
   CreateDateColumn,
   OneToOne,
   JoinColumn,
+  DeleteDateColumn,
 } from 'typeorm'
 import bcrypt from 'bcrypt'
 import { Coord } from '../types/map'
@@ -124,6 +125,9 @@ class User {
   @Exclude()
   @UpdateDateColumn()
   updatedAt: Date
+
+  @DeleteDateColumn()
+  deletedAt: Date
 
   @BeforeInsert()
   @BeforeUpdate()

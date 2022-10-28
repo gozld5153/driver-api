@@ -455,6 +455,7 @@ const handleRejectHero = async (req: Request, res: Response) => {
 const handleGetOrders = async (_req: Request, res: Response) => {
   try {
     const orders = await orderRepository.find({
+      withDeleted: true,
       where: { client: { id: res.locals.user.id } },
       relations: {
         departure: true,
@@ -471,6 +472,35 @@ const handleGetOrders = async (_req: Request, res: Response) => {
   }
 }
 
+const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res: Response) => {
+  try {
+    const user = res.locals.user
+    const { role } = req.params
+    let order
+
+    if (role === 'driver') {
+      order = await orderRepository.find({
+        withDeleted: true,
+        relations: { invoice: true, hero: true },
+        where: { status: OrderStatus.COMPLETED, driver: user.id },
+      })
+    }
+
+    if (role === 'hero') {
+      order = await orderRepository.find({
+        withDeleted: true,
+        relations: { invoice: true, driver: true },
+        where: { status: OrderStatus.COMPLETED, hero: user.id },
+      })
+    }
+
+    res.json({ order })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 // /order
 router.post('/request', user, auth, handleRequestOrder)
 
@@ -482,5 +512,6 @@ router.post('/reject-hero', user, auth, handleRejectHero)
 
 router.get('/', user, auth, handleGetOrders)
 router.get('/:id', user, auth, handleGetOrder)
+router.get('/completed/:role', user, auth, getCompletedOrder)
 
 export default router
