@@ -64,26 +64,47 @@ const handleRequestOrder = async (req: Request, res: Response) => {
     const routes = await getRouteFromCoords(departure, destination)
     if (routes) await keyValStore.set(String(order.id), routes)
 
-    const driverUsers = await userRepository.find({
-      where: { role: UserRole.DRIVER, organization: { affiliation: Not(user.organization.affiliation) } },
+    const hospital = await userRepository.findOneOrFail({
+      where: { id: user.id },
+      relations: { organization: { partners: true } },
+    })
+
+    const sameAffiliationDriverUsers = await userRepository.find({
+      where: { role: UserRole.DRIVER, organization: { affiliation: user.organization.affiliation } },
       relations: { organization: true },
     })
 
-    const notSameAffiliationUserIds = driverUsers.map(du => du.id)
+    const partnersDriverUsers = sameAffiliationDriverUsers.filter(
+      du => du.organization.id === hospital.organization.partners?.id,
+    )
 
-    console.log({ notSameAffiliationUserIds })
+    const sameAffiliationDriverUsersIds = sameAffiliationDriverUsers.map(du => du.id)
+    const partnersDriverUsersIds = partnersDriverUsers.map(du => du.id)
 
-    const driver: (User & { distance: number }) | undefined = await userRepository
+    console.log({ sameAffiliationDriverUsersIds })
+    console.log({ partnersDriverUsersIds })
+
+    let driver: (User & { distance: number }) | undefined = await userRepository
       .createQueryBuilder('user')
       .select(`*, st_distance_sphere(user.location, st_geomfromtext('${departure?.point}', 4326)) as distance`)
       .where('role=:role', { role: UserRole.DRIVER })
       .andWhere('status=:status', { status: 'ready' })
-      .andWhere({ id: Not(In(notSameAffiliationUserIds)) })
+      .andWhere({ id: In(partnersDriverUsersIds) })
       .andWhere(`st_distance_sphere(st_geomfromtext('${departure?.point}', 4326), user.location) <= 10000`)
       .orderBy('distance')
       .getRawOne()
 
-    console.log('findDriver: ', JSON.stringify(driver, null, 2))
+    if (!driver) {
+      driver = await userRepository
+        .createQueryBuilder('user')
+        .select(`*, st_distance_sphere(user.location, st_geomfromtext('${departure?.point}', 4326)) as distance`)
+        .where('role=:role', { role: UserRole.DRIVER })
+        .andWhere('status=:status', { status: 'ready' })
+        .andWhere({ id: In(sameAffiliationDriverUsersIds) })
+        .andWhere(`st_distance_sphere(st_geomfromtext('${departure?.point}', 4326), user.location) <= 10000`)
+        .orderBy('distance')
+        .getRawOne()
+    }
 
     if (!driver) {
       order.status = OrderStatus.NO_DRIVER

@@ -24,7 +24,7 @@ const getOrganizations = async (req: Request, res: Response) => {
     const { type } = req.params
     if (!type) throw new BadRequestError('type is mandatory')
 
-    const agencies = await organizationRepository.findBy({ type: type as any })
+    const agencies = await organizationRepository.find({ where: { type: type as any }, relations: { partners: true } })
 
     return res.json(agencies)
   } catch (err) {
@@ -38,7 +38,10 @@ const getOrganization = async (req: Request, res: Response) => {
   try {
     const { id, type } = req.params
     if (!id || !type) throw new BadRequestError('id, type is mandatory')
-    const organization = await organizationRepository.findOneByOrFail({ id: Number(id), type: type as any })
+    const organization = await organizationRepository.findOneOrFail({
+      where: { id: Number(id), type: type as any },
+      relations: { partners: true },
+    })
 
     return res.json(organization)
   } catch (err) {
@@ -224,6 +227,42 @@ const handleGetLocationQueries = async (_req: Request, res: Response) => {
   }
 }
 
+const updatePartners = async (req: Request<any, any, { partnersId: number; hospitalId: number }>, res: Response) => {
+  try {
+    const { partnersId, hospitalId } = req.body
+
+    const hospital = await organizationRepository.findOneOrFail({
+      where: { id: hospitalId },
+      relations: { partners: true },
+    })
+
+    if (partnersId === 0 && !hospital.partners) return res.json({ hospital })
+
+    if (partnersId === 0 && hospital.partners) {
+      const agency = await organizationRepository.findOneByOrFail({ id: hospital.partners.id })
+
+      hospital.partners = null
+      agency.partners = null
+
+      await organizationRepository.save(hospital)
+      await organizationRepository.save(agency)
+      return res.json({ hospital })
+    }
+
+    const agency = await organizationRepository.findOneByOrFail({ id: partnersId })
+    hospital.partners = agency
+
+    const newHospital = await organizationRepository.findOneByOrFail({ id: hospitalId })
+    agency.partners = newHospital
+    await organizationRepository.save(hospital)
+    await organizationRepository.save(agency)
+    return res.json({ hospital })
+  } catch (err) {
+    console.log(err)
+    return res.status(500)
+  }
+}
+
 router.get('/locations/records', user, auth, admin, handleGetLocationRecords)
 router.get('/locations/queries', user, auth, admin, handleGetLocationQueries)
 
@@ -236,6 +275,8 @@ router.get('/organizations/:type/:id', user, auth, admin, getOrganization)
 router.get('/organizations/:type', user, auth, admin, getOrganizations)
 router.put('/organizations/:type/update', user, auth, admin, updateOrganization)
 router.post('/organizations/:type/register', user, auth, admin, registerOrganization)
+
+router.put('/partners', user, auth, admin, updatePartners)
 
 // router.get('/users/:role', user, auth,admin, getUsers)
 

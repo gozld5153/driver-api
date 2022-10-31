@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
@@ -62,6 +64,10 @@ class Organization {
 
   @Column({ default: false })
   isVerified: boolean
+
+  @OneToOne(() => Organization, { cascade: ['insert', 'update'] })
+  @JoinColumn()
+  partners: Organization | null
 
   @OneToMany(() => User, user => user.organization)
   users: User[]
