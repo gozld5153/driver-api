@@ -79,6 +79,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
       .where('role=:role', { role: UserRole.DRIVER })
       .andWhere('status=:status', { status: 'ready' })
       .andWhere({ id: Not(In(notSameAffiliationUserIds)) })
+      // .andWhere(`st_distance_sphere(${departure.point}, POINT(longitude, latitude) <= 500`)
       .orderBy('distance')
       .getRawOne()
 
@@ -481,7 +482,7 @@ const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res:
     if (role === 'driver') {
       order = await orderRepository.find({
         withDeleted: true,
-        relations: { invoice: true, hero: true },
+        relations: { invoice: true, hero: true, departure: true, destination: true },
         where: { status: OrderStatus.COMPLETED, driver: user.id },
       })
     }
@@ -489,7 +490,7 @@ const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res:
     if (role === 'hero') {
       order = await orderRepository.find({
         withDeleted: true,
-        relations: { invoice: true, driver: true },
+        relations: { invoice: true, driver: true, departure: true, destination: true },
         where: { status: OrderStatus.COMPLETED, hero: user.id },
       })
     }

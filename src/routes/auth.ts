@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express'
 import {
+  agreementRepository,
   locationRecordRepository,
   organizationRepository,
   reasonSecessionRepository,
@@ -699,6 +700,37 @@ const handleSecessionReason = async (req: Request, res: Response) => {
   }
 }
 
+const getMarketingAgree = async (_: Request, res: Response) => {
+  try {
+    const user = res.locals.user
+
+    const isMarketingAgree = await agreementRepository.findOneByOrFail({ user: { id: user.id }, type: 'marketing' })
+
+    res.json({ isMarketingAgree })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
+const handleMarketing = async (req: Request<any, any, { value: boolean }>, res: Response) => {
+  try {
+    const user = res.locals.user
+    const { value } = req.body
+
+    const agreement = await agreementRepository.findOneByOrFail({ user: { id: user.id }, type: 'marketing' })
+
+    agreement.agreed = value
+
+    await agreementRepository.save(agreement)
+
+    res.json({ agreement })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
@@ -719,6 +751,9 @@ router.post('/answer-phone-code', handleAnswerPhoneCode)
 
 router.get('/secession', user, auth, handleSecession)
 router.post('/secession/reason', user, auth, handleSecessionReason)
+
+router.get('/agree', user, auth, getMarketingAgree)
+router.put('/marketing', user, auth, handleMarketing)
 
 // for public client
 router.post('/public-register', registerPublicClient)
