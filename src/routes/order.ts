@@ -79,7 +79,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
       .where('role=:role', { role: UserRole.DRIVER })
       .andWhere('status=:status', { status: 'ready' })
       .andWhere({ id: Not(In(notSameAffiliationUserIds)) })
-      // .andWhere(`st_distance_sphere(${departure.point}, POINT(longitude, latitude) <= 500`)
+      .andWhere(`st_distance_sphere(st_geomfromtext('${departure?.point}', 4326), user.location) <= 10000`)
       .orderBy('distance')
       .getRawOne()
 
@@ -191,6 +191,7 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
             status: 'ready',
             id: Not(In(workerIds)),
           })
+          .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
           .orderBy('distance')
           .getRawOne()
         if (!worker?.pushToken) throw new Error('no worker available')
@@ -285,6 +286,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
           status: 'ready',
           id: Not(In(workerIds)),
         })
+        .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
         .orderBy('distance')
         .getRawOne()
       if (!worker?.pushToken) return res.json({ success: true, offerId, message: 'no worker available' })
@@ -406,6 +408,7 @@ const handleRequestHero = async (req: Request, res: Response) => {
         role: UserRole.HERO,
         status: 'ready',
       })
+      .andWhere(`st_distance_sphere(st_geomfromtext('${order.departure?.point}', 4326), location) <= 10000`)
       .orderBy('distance')
       .getRawOne()
     if (!hero?.pushToken) throw new Error('no hero available')
