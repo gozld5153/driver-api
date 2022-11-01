@@ -179,6 +179,7 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
         await offerRepository.save(offer)
 
         // TODO: 타임아웃되었다고 해당 드라이버|히어로에게 푸시로 알려줌
+
         await notifyByPush({
           token: offer.user?.pushToken,
           data: { timeoutOfferId: String(offer.id) },
@@ -191,7 +192,7 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
           },
           where: {
             organization: {
-              affiliation: Not(offer.user.organization.affiliation),
+              affiliation: Not(offer.user.organization?.affiliation),
             },
             role: UserRole.DRIVER,
           },
@@ -507,7 +508,7 @@ const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res:
       order = await orderRepository.find({
         withDeleted: true,
         relations: { invoice: true, hero: true, departure: true, destination: true },
-        where: { status: OrderStatus.COMPLETED, driver: user.id },
+        where: { status: OrderStatus.COMPLETED, driver: { id: user.id } },
       })
     }
 
@@ -515,7 +516,7 @@ const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res:
       order = await orderRepository.find({
         withDeleted: true,
         relations: { invoice: true, driver: true, departure: true, destination: true },
-        where: { status: OrderStatus.COMPLETED, hero: user.id },
+        where: { status: OrderStatus.COMPLETED, hero: { id: user.id } },
       })
     }
 
