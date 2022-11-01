@@ -731,6 +731,24 @@ const handleMarketing = async (req: Request<any, any, { value: boolean }>, res: 
   }
 }
 
+const updateProfileImage = async (req: Request<any, any, { profileUrl: string }>, res: Response) => {
+  try {
+    const user = res.locals.user
+    const { profileUrl } = req.body
+
+    const findUser = await userRepository.findOneByOrFail({ id: user.id })
+
+    findUser.profileImage = profileUrl
+
+    await userRepository.save(findUser)
+
+    res.json({ findUser })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 router.get('/me', user, auth, handleMe)
 router.get('/refresh-token', handleWebRefreshToken)
 router.post('/refresh-token', handleRefreshToken)
@@ -754,6 +772,8 @@ router.post('/secession/reason', user, auth, handleSecessionReason)
 
 router.get('/agree', user, auth, getMarketingAgree)
 router.put('/marketing', user, auth, handleMarketing)
+
+router.put('/profile-image', user, auth, updateProfileImage)
 
 // for public client
 router.post('/public-register', registerPublicClient)

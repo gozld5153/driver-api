@@ -16,6 +16,7 @@ import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
 import { getRouteFromCoords } from '../lib/helpers'
 import notifyByPush from '../lib/push'
+import sendSMS from '../lib/sendSMS'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
 import keyValStore from '../services/keyValStore'
@@ -107,6 +108,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
     }
 
     if (!driver) {
+      await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
       order.status = OrderStatus.NO_DRIVER
       const savedOrder = await orderRepository.save(order)
       return res.json(savedOrder)
@@ -173,6 +175,8 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
         },
       })
 
+      const order = await orderRepository.findOneByOrFail({ id: offer.order.id })
+
       if (offer.status === OfferStatus.PENDING) {
         // mark offer as timeout
         offer.status = OfferStatus.TIMEOUT
@@ -216,7 +220,14 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
           .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
           .orderBy('distance')
           .getRawOne()
-        if (!worker?.pushToken) throw new Error('no worker available')
+        if (!worker?.pushToken) {
+          if (offer.user.role === UserRole.DRIVER) {
+            await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
+            order.status = OrderStatus.CANCELLED
+            await orderRepository.save(order)
+          }
+          throw new Error('no worker available')
+        }
 
         const newOffer = new Offer({ order: offer.order, type: worker.role, user: worker, status: OfferStatus.PENDING })
         await offerRepository.save(newOffer)
@@ -279,7 +290,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       },
     })
 
-    console.log('offer: ', JSON.stringify(offer, null, 2))
+    const order = await orderRepository.findOneByOrFail({ id: offer.order.id })
 
     if (response === 'reject') {
       offer.status = OfferStatus.REJECTED
@@ -311,7 +322,14 @@ const handleOfferResponse = async (req: Request, res: Response) => {
         .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
         .orderBy('distance')
         .getRawOne()
-      if (!worker?.pushToken) return res.json({ success: true, offerId, message: 'no worker available' })
+      if (!worker?.pushToken) {
+        if (offer.user.role === UserRole.DRIVER) {
+          await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
+          order.status = OrderStatus.CANCELLED
+          await orderRepository.save(order)
+        }
+        return res.json({ success: true, offerId, message: 'no worker available' })
+      }
 
       const newOffer = new Offer({
         order: offer.order,

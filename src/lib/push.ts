@@ -30,7 +30,8 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
     return pushResult
   } catch (error) {
     console.log({ 'notifyByPush error': error })
-    // notifyByPush({ token, data, notification })
+    if (error.errorInfo.code === 'messaging/registration-token-not-registered') return 'notifyByPush error'
+    notifyByPush({ token, data, notification })
     return 'notifyByPush error'
   }
 }
