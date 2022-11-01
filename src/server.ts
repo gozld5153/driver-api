@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 dotenv.config()
 
-import express, { urlencoded } from 'express'
+import express, { Request, Response, urlencoded } from 'express'
 import morgan from 'morgan'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
@@ -37,6 +37,23 @@ admin.initializeApp({
 })
 
 const app = express()
+
+app.set('view engine', 'pug')
+app.get('/marketing', (_req: Request, res: Response) => {
+  res.render('marketing')
+})
+app.get('/terms', (_req: Request, res: Response) => {
+  res.render('terms')
+})
+app.get('/location-terms', (_req: Request, res: Response) => {
+  res.render('locationTerms')
+})
+app.get('/privacy-policy', (_req: Request, res: Response) => {
+  res.render('privacyPolicy')
+})
+app.get('/privacy-agreement', (_req: Request, res: Response) => {
+  res.render('privacyAgreement')
+})
 
 app.use(express.json())
 app.use(morgan('dev'))
