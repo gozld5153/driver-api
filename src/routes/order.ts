@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import express, { Request, Response } from 'express'
 import { In, Not } from 'typeorm'
 import {
@@ -520,13 +521,19 @@ const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res:
   try {
     const user = res.locals.user
     const { role } = req.params
+    const { year, month } = req.query
     let order
+
+    const forDate = dayjs(`${year}-${month}`).format('YYYY-MM')
 
     if (role === 'driver') {
       order = await orderRepository.find({
         withDeleted: true,
         relations: { invoice: true, hero: true, departure: true, destination: true },
-        where: { status: OrderStatus.COMPLETED, driver: { id: user.id } },
+        where: {
+          status: OrderStatus.COMPLETED,
+          driver: { id: user.id },
+        },
       })
     }
 
@@ -537,6 +544,8 @@ const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res:
         where: { status: OrderStatus.COMPLETED, hero: { id: user.id } },
       })
     }
+
+    order = order?.filter(o => dayjs(o.completedAt).format('YYYY-MM') === forDate)
 
     res.json({ order })
   } catch (err) {
