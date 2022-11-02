@@ -675,7 +675,7 @@ const handleSecession = async (_: Request, res: Response) => {
 
     await userRepository.softRemove(findUser)
 
-    res.json('sucess')
+    res.json('success')
   } catch (err) {
     console.log(err)
     res.status(500).json({ error: 'Something went wrong.' })
