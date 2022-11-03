@@ -297,18 +297,22 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       offer.status = OfferStatus.REJECTED
       await offerRepository.save(offer)
 
-      const notSameAffiliationdrivers = await userRepository.find({
-        relations: { organization: true },
-        where: {
-          organization: {
-            affiliation: Not(user.organization.affiliation),
-          },
-          role: UserRole.DRIVER,
-        },
-      })
-
       let workerIds = offer.order.offers.filter(of => of.type === offer.type).map(of => of.user.id)
-      workerIds = [...workerIds, ...notSameAffiliationdrivers.map(d => d.id)]
+
+      if (user.role === UserRole.DRIVER) {
+        const notSameAffiliationdrivers = await userRepository.find({
+          relations: { organization: true },
+          where: {
+            organization: {
+              affiliation: Not(user.organization.affiliation),
+            },
+            role: UserRole.DRIVER,
+          },
+        })
+
+        workerIds = [...workerIds, ...notSameAffiliationdrivers.map(d => d.id)]
+      }
+
       console.log({ workersIncludeNotSameAffiliation: workerIds })
 
       // find other driver and push
