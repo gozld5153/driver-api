@@ -115,6 +115,10 @@ const handleRequestOrder = async (req: Request, res: Response) => {
       return res.json(savedOrder)
     }
 
+    const offerDriver = await userRepository.findOneByOrFail({ id: driver.id })
+    offerDriver.status = 'working'
+    await userRepository.save(offerDriver)
+
     const offer = new Offer({ order, type: driver.role, user: driver, status: OfferStatus.PENDING })
     offer.order = order
     await offerRepository.save(offer)
@@ -183,6 +187,10 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
         offer.status = OfferStatus.TIMEOUT
         await offerRepository.save(offer)
 
+        const timeOutWorker = await userRepository.findOneByOrFail({ id: offer.user.id })
+        timeOutWorker.status = 'ready'
+        await userRepository.save(timeOutWorker)
+
         // TODO: 타임아웃되었다고 해당 드라이버|히어로에게 푸시로 알려줌
 
         await notifyByPush({
@@ -229,6 +237,10 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
           }
           throw new Error('no worker available')
         }
+
+        const nextOfferWorker = await userRepository.findOneByOrFail({ id: worker.id })
+        nextOfferWorker.status = 'working'
+        await userRepository.save(nextOfferWorker)
 
         const newOffer = new Offer({ order: offer.order, type: worker.role, user: worker, status: OfferStatus.PENDING })
         await offerRepository.save(newOffer)
@@ -295,7 +307,9 @@ const handleOfferResponse = async (req: Request, res: Response) => {
 
     if (response === 'reject') {
       offer.status = OfferStatus.REJECTED
-      await offerRepository.save(offer)
+
+      user.status = 'ready'
+      await userRepository.save(user)
 
       let workerIds = offer.order.offers.filter(of => of.type === offer.type).map(of => of.user.id)
 
@@ -446,7 +460,7 @@ const handleRequestHero = async (req: Request, res: Response) => {
     order.status = OrderStatus.HERO_REQUESTED
     await orderRepository.save(order)
 
-    const hero = await userRepository
+    const hero: User | undefined = await userRepository
       .createQueryBuilder()
       .select(`*, st_distance_sphere(location, st_geomfromtext('${order.departure?.point}', 4326)) as distance`)
       .where({
@@ -457,6 +471,10 @@ const handleRequestHero = async (req: Request, res: Response) => {
       .orderBy('distance')
       .getRawOne()
     if (!hero?.pushToken) throw new Error('no hero available')
+
+    const offerHero = await userRepository.findOneByOrFail({ id: hero.id })
+    offerHero.status = 'working'
+    await userRepository.save(offerHero)
 
     const offer = new Offer({ order, type: hero.role, user: hero, status: OfferStatus.PENDING })
     await offerRepository.save(offer)
@@ -558,6 +576,27 @@ const getCompletedOrder = async (req: Request<{ role: 'driver' | 'hero' }>, res:
   }
 }
 
+const orderCheck = async (req: Request, res: Response) => {
+  try {
+    const orderId = Number(req.params.orderId)
+    console.log({ orderId })
+
+    const order = await orderRepository.findOneOrFail({
+      where: { id: orderId },
+      relations: { hero: true },
+    })
+
+    console.log(order)
+
+    if (order.hero) return res.json({ possibleReject: false })
+
+    return res.json({ possibleReject: true })
+  } catch (err) {
+    console.log(err)
+    return res.status(500)
+  }
+}
+
 // /order
 router.post('/request', user, auth, handleRequestOrder)
 
@@ -570,5 +609,7 @@ router.post('/reject-hero', user, auth, handleRejectHero)
 router.get('/', user, auth, handleGetOrders)
 router.get('/:id', user, auth, handleGetOrder)
 router.get('/completed/:role', user, auth, getCompletedOrder)
+
+router.get('/check/:orderId', user, auth, orderCheck)
 
 export default router
