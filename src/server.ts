@@ -87,7 +87,10 @@ app.use('/transfer', transferRoutes)
 app.use('/calculation', calculationRoutes)
 app.use('/certificate', certificateRoutes)
 app.use('/reservations', reservationRoutes)
-app.get('/', (_, res) => res.send('hello'))
+app.get('/', (_, res) => {
+  const newTime = new Date()
+  res.send({ newTime })
+})
 
 const PORT = process.env.PORT
 
