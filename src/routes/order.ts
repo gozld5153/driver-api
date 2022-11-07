@@ -307,6 +307,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
 
     if (response === 'reject') {
       offer.status = OfferStatus.REJECTED
+      await offerRepository.save(offer)
 
       user.status = 'ready'
       await userRepository.save(user)
@@ -597,6 +598,37 @@ const orderCheck = async (req: Request, res: Response) => {
   }
 }
 
+//* hero 전용
+const offerCheck = async (req: Request<{ offerId: string }>, res: Response) => {
+  try {
+    const offerId = Number(req.params.offerId)
+    const user: User = res.locals.user
+
+    const offer = await offerRepository.findOneOrFail({
+      where: { id: offerId },
+      relations: { order: { driver: true } },
+    })
+
+    const driverOffer = await offerRepository.findOneByOrFail({
+      order: { id: offer.order.id },
+      user: { id: offer.order.driver.id },
+    })
+
+    if (driverOffer.status === OfferStatus.REJECTED) {
+      user.status = 'ready'
+      await userRepository.save(user)
+
+      offer.status = OfferStatus.REJECTED
+      await offerRepository.save(offer)
+    }
+
+    res.json({ isRejected: driverOffer.status === OfferStatus.REJECTED })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 // /order
 router.post('/request', user, auth, handleRequestOrder)
 
@@ -610,6 +642,7 @@ router.get('/', user, auth, handleGetOrders)
 router.get('/:id', user, auth, handleGetOrder)
 router.get('/completed/:role', user, auth, getCompletedOrder)
 
-router.get('/check/:orderId', user, auth, orderCheck)
+router.get('/check/:orderId', user, auth, orderCheck) //* driver
+router.get('/check/offer/:offerId', user, auth, offerCheck) //* hero
 
 export default router
