@@ -576,6 +576,9 @@ export const getRandom6Digits = () => Math.floor(100000 + Math.random() * 900000
 const handleRequestPhoneCode = async (req: Request<any, any, { phoneNumber: string }>, res: Response) => {
   try {
     const { phoneNumber } = req.body
+
+    if (phoneNumber === '2424') return res.json({ success: true }) //!FIXME: app 검수용
+
     const code = getRandom6Digits()
     await keyValStore.set(phoneNumber, code, 15 * 1000)
     const smsResult = await sendSMS(phoneNumber, `[구출이] 인증번호는 ${code} 입니다.`)
@@ -591,6 +594,8 @@ const handleRequestPhoneCode = async (req: Request<any, any, { phoneNumber: stri
 const handleAnswerPhoneCode = async (req: Request<any, any, { phoneNumber: string; code: string }>, res: Response) => {
   try {
     const { phoneNumber, code } = req.body
+
+    if (phoneNumber === '2424' || code === '2424') return res.json({ match: true }) //!FIXME: app 검수용
     const storedCode = await keyValStore.get(phoneNumber)
 
     console.log({ phoneNumber, code, storedCode })
