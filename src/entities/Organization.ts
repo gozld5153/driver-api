@@ -13,6 +13,7 @@ import {
 import Place from './Place'
 import Invitation from './Invitation'
 import User from './User'
+import CarInfo from './CarInfo'
 
 type OrganizationType = 'hospital' | 'agency'
 type Coordinate = {
@@ -74,6 +75,9 @@ class Organization {
 
   @OneToMany(() => Place, place => place.organization, { cascade: ['insert'] })
   places: Place[]
+
+  @OneToMany(() => CarInfo, carInfo => carInfo.organization)
+  carInfo: CarInfo
 
   @CreateDateColumn()
   createdAt: Date
