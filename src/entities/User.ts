@@ -117,7 +117,7 @@ class User {
   @JoinColumn()
   friend: User
 
-  @OneToOne(() => CarInfo, carInfo => carInfo.user)
+  @OneToOne(() => CarInfo, carInfo => carInfo.driver)
   @JoinColumn()
   carInfo: CarInfo
 

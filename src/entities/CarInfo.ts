@@ -23,12 +23,12 @@ class CarInfo {
   @Column()
   certificateNumber: string
 
-  @Column()
+  @Column({ nullable: true })
   registration: string
 
   @OneToOne(() => User, user => user.carInfo)
   @JoinColumn()
-  user: User
+  driver: User
 
   @ManyToOne(() => Organization, org => org.carInfo)
   organization: Organization

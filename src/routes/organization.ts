@@ -1,5 +1,6 @@
 import { Request, Response, Router } from 'express'
-import { organizationRepository, userRepository } from '../db/repositories'
+import { carInfoRepository, organizationRepository, userRepository } from '../db/repositories'
+import CarInfo from '../entities/CarInfo'
 import Organization from '../entities/Organization'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
@@ -91,8 +92,49 @@ const updateOrganization = async (req: Request, res: Response) => {
   }
 }
 
+const registerVichelInfo = async (req: Request<any, any, { vichelNumber: string }>, res: Response) => {
+  try {
+    const user: User = res.locals.user
+    const { vichelNumber } = req.body
+    const agency = await organizationRepository.findOneByOrFail({ id: user.organization.id })
+
+    const carInfo = new CarInfo({
+      certificateNumber: vichelNumber,
+      organization: agency,
+    })
+
+    await carInfoRepository.save(carInfo)
+
+    console.log('agency: ', JSON.stringify(agency, null, 2))
+    res.json({ success: true })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
+const getVichelInfo = async (_: Request, res: Response) => {
+  try {
+    const user: User = res.locals.user
+
+    const vichelInfo = await carInfoRepository.findBy({
+      organization: {
+        id: user.organization.id,
+      },
+    })
+
+    res.json({ vichelInfo })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 // /organization
 router.post('/register', user, auth, registerOrganization)
 router.put('/update', user, auth, updateOrganization)
+
+router.post('/agency/vichel/register', user, auth, registerVichelInfo)
+router.get('/vichel', user, auth, getVichelInfo)
 
 export default router
