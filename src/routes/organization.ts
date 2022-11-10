@@ -121,8 +121,14 @@ const registerVehicleInfo = async (
 
     await carInfoRepository.save(carInfo)
 
-    console.log('agency: ', JSON.stringify(agency, null, 2))
-    res.json({ success: true })
+    const vehicleInfo = await carInfoRepository.findBy({
+      organization: {
+        id: user.organization.id,
+      },
+    })
+
+    // console.log('agency: ', JSON.stringify(agency, null, 2))
+    res.json({ success: true, vehicles: vehicleInfo })
   } catch (err) {
     console.log(err)
     res.status(500)
@@ -143,6 +149,21 @@ const getVehicleInfo = async (_: Request, res: Response) => {
   } catch (err) {
     console.log(err)
     res.status(500)
+  }
+}
+
+const deleteVehicle = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    if (!id) throw new BadRequestError('id is mandatory')
+
+    const vehicle = await carInfoRepository.findOneByOrFail({ id: Number(id) })
+    await carInfoRepository.softRemove(vehicle)
+
+    return res.json({ message: 'ok', deletedId: id })
+  } catch (error) {
+    console.log(error)
+    return res.status(500)
   }
 }
 
@@ -195,6 +216,7 @@ router.put('/update', user, auth, updateOrganization)
 
 router.post('/agency/vehicle/register', user, auth, registerVehicleInfo)
 router.get('/vehicle', user, auth, getVehicleInfo)
+router.delete('/vehicle/:id', user, auth, deleteVehicle)
 
 router.get('/drivers', user, auth, getDriver)
 

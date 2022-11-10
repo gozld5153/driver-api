@@ -2,6 +2,7 @@ import { Exclude } from 'class-transformer'
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -35,6 +36,10 @@ class CarInfo {
 
   @ManyToOne(() => Organization, org => org.carInfo)
   organization: Organization
+
+  @Exclude()
+  @DeleteDateColumn()
+  deletedAt: Date
 
   @Exclude()
   @CreateDateColumn()
