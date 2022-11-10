@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express'
-import { carInfoRepository, organizationRepository, userRepository } from '../db/repositories'
+import { carInfoRepository, orderRepository, organizationRepository, userRepository } from '../db/repositories'
 import CarInfo from '../entities/CarInfo'
+import { OrderStatus } from '../entities/Order'
 import Organization from '../entities/Organization'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
@@ -130,11 +131,58 @@ const getVichelInfo = async (_: Request, res: Response) => {
   }
 }
 
+const getDriver = async (_: Request, res: Response) => {
+  try {
+    const user = res.locals.user
+    const drivers = await userRepository.findBy({
+      organization: {
+        id: user.organization.id,
+      },
+      role: UserRole.DRIVER,
+    })
+
+    res.json({ drivers })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
+const getDriverSales = async (req: Request<{ driverId: string }>, res: Response) => {
+  try {
+    const driverId = Number(req.params.driverId)
+
+    const sales = await orderRepository.find({
+      where: {
+        driver: {
+          id: driverId,
+        },
+        status: OrderStatus.COMPLETED,
+      },
+      relations: {
+        invoice: true,
+      },
+    })
+
+    const invoice = sales.map(o => o.invoice)
+
+    console.log('invoice: ', JSON.stringify(invoice, null, 2))
+    res.json({ invoice })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 // /organization
 router.post('/register', user, auth, registerOrganization)
 router.put('/update', user, auth, updateOrganization)
 
 router.post('/agency/vichel/register', user, auth, registerVichelInfo)
 router.get('/vichel', user, auth, getVichelInfo)
+
+router.get('/drivers', user, auth, getDriver)
+
+router.get('/sales/:driverId', user, auth, getDriverSales)
 
 export default router
