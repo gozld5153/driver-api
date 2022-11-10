@@ -93,15 +93,19 @@ const updateOrganization = async (req: Request, res: Response) => {
   }
 }
 
-const registerVichelInfo = async (req: Request<any, any, { vichelNumber: string }>, res: Response) => {
+const registerVichelInfo = async (
+  req: Request<any, any, { vichelNumber: string; type: 'normal' | 'special' }>,
+  res: Response,
+) => {
   try {
     const user: User = res.locals.user
-    const { vichelNumber } = req.body
+    const { vichelNumber, type } = req.body
     const agency = await organizationRepository.findOneByOrFail({ id: user.organization.id })
 
     const carInfo = new CarInfo({
       certificateNumber: vichelNumber,
       organization: agency,
+      type,
     })
 
     await carInfoRepository.save(carInfo)

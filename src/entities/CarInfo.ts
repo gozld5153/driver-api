@@ -26,6 +26,9 @@ class CarInfo {
   @Column({ nullable: true })
   registration: string
 
+  @Column()
+  type: 'normal' | 'special'
+
   @OneToOne(() => User, user => user.carInfo)
   @JoinColumn()
   driver: User
