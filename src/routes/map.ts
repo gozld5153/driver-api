@@ -13,6 +13,7 @@ const camera = async (req: Request, res: Response) => {
     const organization = await organizationRepository.findBy({
       point: Raw(point => `MBRIntersects(ST_GeomFromText('${polygon}', 4326), ${point})`),
       isVerified: true,
+      type: 'hospital',
     })
 
     return res.json(organization)

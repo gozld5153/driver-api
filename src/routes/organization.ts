@@ -14,8 +14,18 @@ const router = Router()
 
 const registerOrganization = async (req: Request, res: Response) => {
   try {
-    const { name, licenseNumber, address, profileImage, email, phoneNumber, type, certificate, affiliation } =
-      req.body as Partial<Organization>
+    const {
+      name,
+      licenseNumber,
+      address,
+      profileImage,
+      email,
+      phoneNumber,
+      type,
+      certificate,
+      affiliation,
+      coordinate,
+    } = req.body as Partial<Organization>
     if (!name || !licenseNumber || !address || !email || !phoneNumber || !type)
       throw new BadRequestError('name, licenseNumber, address, profileImage, email, phoneNumber, type is mandatory')
 
@@ -47,6 +57,7 @@ const registerOrganization = async (req: Request, res: Response) => {
       type,
       certificate,
       affiliation,
+      coordinate,
     })
     await organizationRepository.save(org)
 
@@ -93,17 +104,17 @@ const updateOrganization = async (req: Request, res: Response) => {
   }
 }
 
-const registerVichelInfo = async (
-  req: Request<any, any, { vichelNumber: string; type: 'normal' | 'special' }>,
+const registerVehicleInfo = async (
+  req: Request<any, any, { vehicleNumber: string; type: 'normal' | 'special' }>,
   res: Response,
 ) => {
   try {
     const user: User = res.locals.user
-    const { vichelNumber, type } = req.body
+    const { vehicleNumber, type } = req.body
     const agency = await organizationRepository.findOneByOrFail({ id: user.organization.id })
 
     const carInfo = new CarInfo({
-      certificateNumber: vichelNumber,
+      certificateNumber: vehicleNumber,
       organization: agency,
       type,
     })
@@ -118,17 +129,17 @@ const registerVichelInfo = async (
   }
 }
 
-const getVichelInfo = async (_: Request, res: Response) => {
+const getVehicleInfo = async (_: Request, res: Response) => {
   try {
     const user: User = res.locals.user
 
-    const vichelInfo = await carInfoRepository.findBy({
+    const vehicleInfo = await carInfoRepository.findBy({
       organization: {
         id: user.organization.id,
       },
     })
 
-    res.json({ vichelInfo })
+    res.json({ vehicleInfo })
   } catch (err) {
     console.log(err)
     res.status(500)
@@ -182,8 +193,8 @@ const getDriverSales = async (req: Request<{ driverId: string }>, res: Response)
 router.post('/register', user, auth, registerOrganization)
 router.put('/update', user, auth, updateOrganization)
 
-router.post('/agency/vichel/register', user, auth, registerVichelInfo)
-router.get('/vichel', user, auth, getVichelInfo)
+router.post('/agency/vehicle/register', user, auth, registerVehicleInfo)
+router.get('/vehicle', user, auth, getVehicleInfo)
 
 router.get('/drivers', user, auth, getDriver)
 
