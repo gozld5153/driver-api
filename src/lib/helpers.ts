@@ -41,3 +41,9 @@ export const getRouteFromCoords = async (departure: Coord, destination: Coord) =
 
   return null
 }
+
+export const addDays = (date: string, days: number) => {
+  let result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}

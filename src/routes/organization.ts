@@ -1,4 +1,5 @@
 import { Request, Response, Router } from 'express'
+import { Between, In } from 'typeorm'
 import { carInfoRepository, orderRepository, organizationRepository, userRepository } from '../db/repositories'
 import CarInfo from '../entities/CarInfo'
 import { OrderStatus } from '../entities/Order'
@@ -6,6 +7,7 @@ import Organization from '../entities/Organization'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
+import { addDays } from '../lib/helpers'
 import auth from '../middlewares/auth'
 import user from '../middlewares/user'
 import { UserRole } from '../types/user'
@@ -201,9 +203,67 @@ const getDriverSales = async (req: Request<{ driverId: string }>, res: Response)
     })
 
     const invoice = sales.map(o => o.invoice)
-
-    console.log('invoice: ', JSON.stringify(invoice, null, 2))
     res.json({ invoice })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
+const getAllDriverSales = async (
+  req: Request<
+    { startDate: string; lastDate: string; agencyId: string },
+    any,
+    any,
+    { driverId: string; page: string; listNum: string }
+  >,
+  res: Response,
+) => {
+  try {
+    const { startDate, lastDate, agencyId } = req.params
+    console.log(agencyId)
+
+    const newStartDate = addDays(startDate, -1)
+    const newLastDate = addDays(lastDate, 1)
+
+    console.log(newStartDate, newLastDate)
+
+    const { driverId, page, listNum } = req.query
+    let driverIds
+    if (!driverId) {
+      const drivers = await userRepository.findBy({
+        organization: {
+          id: Number(agencyId),
+        },
+        role: UserRole.DRIVER,
+      })
+      driverIds = drivers.map(d => d.id)
+    } else {
+      driverIds = [Number(driverId)]
+    }
+
+    const orders = await orderRepository.findAndCount({
+      where: {
+        driver: {
+          id: In(driverIds),
+        },
+        status: OrderStatus.COMPLETED,
+        completedAt: Between(new Date(newStartDate), new Date(newLastDate)),
+      },
+      relations: {
+        invoice: true,
+        driver: true,
+        departure: true,
+        destination: true,
+      },
+      take: Number(listNum),
+      skip: Number(listNum) * (Number(page) - 1),
+      order: { id: 'DESC' },
+    })
+
+    console.log('orders: ', JSON.stringify(orders, null, 2))
+
+    res.json({ orders })
   } catch (err) {
     console.log(err)
     res.status(500)
@@ -221,5 +281,6 @@ router.delete('/vehicle/:id', user, auth, deleteVehicle)
 router.get('/drivers', user, auth, getDriver)
 
 router.get('/sales/:driverId', user, auth, getDriverSales)
+router.get('/sales/:startDate/:lastDate/:agencyId', user, auth, getAllDriverSales)
 
 export default router
