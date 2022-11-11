@@ -221,15 +221,11 @@ const getAllDriverSales = async (
 ) => {
   try {
     const { startDate, lastDate, agencyId } = req.params
-    console.log(agencyId)
-
     const newStartDate = addDays(startDate, -1)
     const newLastDate = addDays(lastDate, 1)
-
-    console.log(newStartDate, newLastDate)
-
     const { driverId, page, listNum } = req.query
     let driverIds
+
     if (!driverId) {
       const drivers = await userRepository.findBy({
         organization: {
@@ -260,8 +256,6 @@ const getAllDriverSales = async (
       skip: Number(listNum) * (Number(page) - 1),
       order: { id: 'DESC' },
     })
-
-    console.log('orders: ', JSON.stringify(orders, null, 2))
 
     res.json({ orders })
   } catch (err) {
