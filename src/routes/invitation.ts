@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express'
-import { invitationRepository } from '../db/repositories'
+import { invitationRepository, userRepository } from '../db/repositories'
 import Invitation from '../entities/Invitation'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
@@ -125,6 +125,16 @@ const deleteInvitation = async (req: Request, res: Response) => {
 
     if (!invitation) throw new BadRequestError('cannot find any invitation given id')
 
+    const driver = await userRepository.findOneBy({
+      name: invitation.name,
+      phoneNumber: invitation.phoneNumber,
+      email: invitation.email,
+      organization: {
+        id: user.organization.id,
+      },
+    })
+
+    if (driver) await userRepository.softRemove(driver)
     const deleted = await invitationRepository.softRemove(invitation)
 
     return res.json({ success: true, result: deleted })

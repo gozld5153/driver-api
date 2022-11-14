@@ -227,11 +227,14 @@ const getAllDriverSales = async (
     let driverIds
 
     if (!driverId) {
-      const drivers = await userRepository.findBy({
-        organization: {
-          id: Number(agencyId),
+      const drivers = await userRepository.find({
+        withDeleted: true,
+        where: {
+          organization: {
+            id: Number(agencyId),
+          },
+          role: UserRole.DRIVER,
         },
-        role: UserRole.DRIVER,
       })
       driverIds = drivers.map(d => d.id)
     } else {
@@ -239,6 +242,7 @@ const getAllDriverSales = async (
     }
 
     const orders = await orderRepository.findAndCount({
+      withDeleted: true,
       where: {
         driver: {
           id: In(driverIds),
