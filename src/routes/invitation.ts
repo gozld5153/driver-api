@@ -21,11 +21,10 @@ const createInvitation = async (req: Request, res: Response) => {
     const user = res.locals.user as User
     if (user.role !== UserRole.AGENCY) throw new BadRequestError('agency manager only')
 
-    const { name, licenseNumber, address, phoneNumber, email } = req.body
-    if (!name || !licenseNumber || !address || !phoneNumber || !email)
-      throw new BadRequestError('every properties are mandatory')
+    const { name, licenseNumber, phoneNumber, email } = req.body
+    if (!name || !licenseNumber || !phoneNumber || !email) throw new BadRequestError('every properties are mandatory')
 
-    const invitaion = new Invitation({ name, licenseNumber, address, phoneNumber, email })
+    const invitaion = new Invitation({ name, licenseNumber, phoneNumber, email })
     invitaion.organization = user.organization
 
     await invitationRepository.save(invitaion)

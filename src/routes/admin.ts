@@ -263,6 +263,33 @@ const updatePartners = async (req: Request<any, any, { partnersId: number; hospi
   }
 }
 
+type ArrDrivers = User & { distancd: number }
+
+const getDrivers = async (_req: Request, res: Response) => {
+  try {
+    const user: User = res.locals.user
+
+    const hospital = await organizationRepository.findOneByOrFail({
+      id: user.organization.id,
+    })
+
+    const drivers: ArrDrivers[] = await userRepository
+      .createQueryBuilder('user')
+      .select(`*, st_distance_sphere(user.location, st_geomfromtext('${hospital.point}', 4326)) as distance`)
+      .where({ role: UserRole.DRIVER })
+      .andWhere({ status: 'ready' })
+      .andWhere(`st_distance_sphere(user.location, st_geomfromtext('${hospital.point}', 4326)) <= 10000`)
+      .orderBy('distance')
+      .getRawMany()
+
+    console.log({ drivers })
+    res.json({ drivers })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 router.get('/locations/records', user, auth, admin, handleGetLocationRecords)
 router.get('/locations/queries', user, auth, admin, handleGetLocationQueries)
 
@@ -277,6 +304,8 @@ router.put('/organizations/:type/update', user, auth, admin, updateOrganization)
 router.post('/organizations/:type/register', user, auth, admin, registerOrganization)
 
 router.put('/partners', user, auth, admin, updatePartners)
+
+router.get('/drivers', user, auth, getDrivers)
 
 // router.get('/users/:role', user, auth,admin, getUsers)
 
