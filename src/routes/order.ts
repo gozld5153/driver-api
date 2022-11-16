@@ -639,7 +639,7 @@ const getOrderStatus = async (req: Request<{ orderId: string; driverId: string }
     const orderId = Number(req.params.orderId)
     const driverId = Number(req.params.driverId)
 
-    const order = await orderRepository.findOneByOrFail({ id: orderId })
+    const order = await orderRepository.findOne({ where: { id: orderId }, relations: { invoice: true } })
     const driver = await userRepository.findOneByOrFail({ id: driverId })
 
     res.json({ order, driver })
