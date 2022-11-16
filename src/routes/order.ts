@@ -631,6 +631,21 @@ const offerCheck = async (req: Request<{ offerId: string }>, res: Response) => {
   }
 }
 
+const getOrderStatus = async (req: Request<{ orderId: string; driverId: string }>, res: Response) => {
+  try {
+    const orderId = Number(req.params.orderId)
+    const driverId = Number(req.params.driverId)
+
+    const order = await orderRepository.findOneByOrFail({ id: orderId })
+    const driver = await userRepository.findOneByOrFail({ id: driverId })
+
+    res.json({ order, driver })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 // /order
 router.post('/request', user, auth, handleRequestOrder)
 
@@ -646,5 +661,6 @@ router.get('/completed/:role', user, auth, getCompletedOrder)
 
 router.get('/check/:orderId', user, auth, orderCheck) //* driver
 router.get('/check/offer/:offerId', user, auth, offerCheck) //* hero
+router.get('/status/:orderId/:driverId', user, auth, getOrderStatus) //*hospital
 
 export default router
