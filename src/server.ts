@@ -24,6 +24,7 @@ import organizationRoutes from './routes/organization'
 import backdoorRoutes from './routes/backdoor'
 import calculationRoutes from './routes/calculation'
 import reservationRoutes from './routes/reservation'
+import noticeRoutes from './routes/notice'
 
 import dataSource from './db/data-source'
 import configureOAuth from './lib/oauthConfig'
@@ -87,6 +88,7 @@ app.use('/transfer', transferRoutes)
 app.use('/calculation', calculationRoutes)
 app.use('/certificate', certificateRoutes)
 app.use('/reservations', reservationRoutes)
+app.use('/notices', noticeRoutes)
 app.get('/', (_, res) => {
   const newTime = new Date()
   res.send({ newTime })

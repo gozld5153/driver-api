@@ -13,6 +13,7 @@ import Reservation from '../entities/Reservation'
 import ReasonSecession from '../entities/ResonSecession'
 import Agreement from '../entities/Agreement'
 import CarInfo from '../entities/CarInfo'
+import Notice from '../entities/Notice'
 
 export const placeRepository = dataSource.getRepository(Place)
 export const userRepository = dataSource.getRepository(User)
@@ -28,3 +29,4 @@ export const reservationRepository = dataSource.getRepository(Reservation)
 export const reasonSecessionRepository = dataSource.getRepository(ReasonSecession)
 export const agreementRepository = dataSource.getRepository(Agreement)
 export const carInfoRepository = dataSource.getRepository(CarInfo)
+export const noticeRepository = dataSource.getRepository(Notice)

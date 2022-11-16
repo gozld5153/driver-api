@@ -373,7 +373,10 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       offer.status = OfferStatus.ACCEPTED
       user.status = 'working'
 
-      if (user.role === UserRole.DRIVER) offer.order.driver = user
+      if (user.role === UserRole.DRIVER) {
+        offer.order.driver = user
+        await sendSMS(order.clientPhoneNumber, '드라이버가 매칭되었습니다.')
+      }
       if (user.role === UserRole.HERO) offer.order.hero = user
 
       if (user.role === UserRole.DRIVER) offer.order.status = OrderStatus.DRIVER_MATCHED
