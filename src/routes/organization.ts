@@ -268,6 +268,47 @@ const getAllDriverSales = async (
   }
 }
 
+const getOrders = async (
+  req: Request<{ startDate: string; lastDate: string }, any, any, { page: string; listNum: string }>,
+  res: Response,
+) => {
+  try {
+    const user: User = res.locals.user
+    const { startDate, lastDate } = req.params
+    const newStartDate = addDays(startDate, -1)
+    const newLastDate = addDays(lastDate, 1)
+    const { page, listNum } = req.query
+
+    const orders = await orderRepository.findAndCount({
+      withDeleted: true,
+      relations: {
+        departure: true,
+        destination: true,
+        driver: {
+          organization: true,
+        },
+        hero: true,
+        client: true,
+        invoice: true,
+      },
+      where: {
+        client: {
+          id: user.id,
+        },
+        createdAt: Between(new Date(newStartDate), new Date(newLastDate)),
+      },
+      take: Number(listNum),
+      skip: Number(listNum) * (Number(page) - 1),
+      order: { id: 'DESC' },
+    })
+
+    res.json({ orders })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 // /organization
 router.post('/register', user, auth, registerOrganization)
 router.put('/update', user, auth, updateOrganization)
@@ -279,6 +320,7 @@ router.delete('/vehicle/:id', user, auth, deleteVehicle)
 router.get('/drivers', user, auth, getDriver)
 
 router.get('/sales/:driverId', user, auth, getDriverSales)
-router.get('/sales/:startDate/:lastDate/:agencyId', user, auth, getAllDriverSales)
+router.get('/sales/:startDate/:lastDate/:agencyId', user, auth, getAllDriverSales) //agency 전용
+router.get('/order/:startDate/:lastDate', user, auth, getOrders)
 
 export default router

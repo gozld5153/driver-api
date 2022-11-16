@@ -528,7 +528,9 @@ const handleGetOrders = async (_req: Request, res: Response) => {
       relations: {
         departure: true,
         destination: true,
-        driver: true,
+        driver: {
+          organization: true,
+        },
         hero: true,
         client: true,
         invoice: true,
