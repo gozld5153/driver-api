@@ -13,6 +13,13 @@ const notifyByPush = async ({ token, data, notification }: NotifyByPushType) => 
           vibrateTimingsMillis: [0, 500, 500, 500],
           priority: 'high',
           defaultVibrateTimings: false,
+          defaultLightSettings: true,
+          lightSettings: {
+            color: '#ff0000',
+            lightOffDurationMillis: 100,
+            lightOnDurationMillis: 100,
+          },
+          defaultSound: true,
         },
         priority: 'high',
       },

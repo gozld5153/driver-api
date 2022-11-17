@@ -135,6 +135,9 @@ class Order {
   @Column({ nullable: true })
   etc: string
 
+  @Column({ nullable: true })
+  expectedFee: number
+
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus
 

@@ -15,7 +15,7 @@ import Place from '../entities/Place'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
-import { getRouteFromCoords } from '../lib/helpers'
+import { getExpectedFee, getRouteFromCoords } from '../lib/helpers'
 import notifyByPush from '../lib/push'
 import sendSMS from '../lib/sendSMS'
 import auth from '../middlewares/auth'
@@ -47,7 +47,8 @@ const handleRequestOrder = async (req: Request, res: Response) => {
     const departure = (await placeRepository.findOneBy({ ...d1 })) ?? (await placeRepository.save(new Place(d1)))
     const destination = (await placeRepository.findOneBy({ ...d2 })) ?? (await placeRepository.save(new Place(d2)))
 
-    console.log({ d1, departure, d2, destination })
+    const routes = await getRouteFromCoords(departure, destination)
+    const expectedFee = getExpectedFee(routes?.distance)
 
     const order = await orderRepository.save({
       client: user,
@@ -61,9 +62,9 @@ const handleRequestOrder = async (req: Request, res: Response) => {
       description,
       gear,
       etc,
+      expectedFee,
     })
 
-    const routes = await getRouteFromCoords(departure, destination)
     if (routes) await keyValStore.set(String(order.id), routes)
 
     const hospital = await userRepository.findOneOrFail({

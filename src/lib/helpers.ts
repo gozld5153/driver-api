@@ -47,3 +47,24 @@ export const addDays = (date: string, days: number) => {
   result.setDate(result.getDate() + days)
   return result
 }
+
+export function getExpectedFee(meters: number | undefined | null) {
+  if (!meters) return 0
+
+  const base = 75000
+  const baseMeter = 10000
+  const extraUnit = 1300
+
+  if (meters <= baseMeter) return base
+
+  const remains = meters - baseMeter
+  const ticks = Math.ceil(remains / 1000)
+
+  let total = base + extraUnit * ticks
+
+  const now = new Date()
+  const night = now.getHours() >= 0 && now.getHours() <= 4
+  if (night) total = total * 1.2
+
+  return total
+}
