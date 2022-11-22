@@ -62,7 +62,7 @@ app.use(cookieParser())
 app.use(
   cors({
     credentials: true,
-    origin: [process.env.HOSPITAL_URL!, process.env.AGENCY_URL!, process.env.ADMIN_URL!],
+    origin: [process.env.HOSPITAL_URL!, process.env.AGENCY_URL!, process.env.ADMIN_URL!, process.env.WEB_ADMIN_URL!],
     optionsSuccessStatus: 200, // default 204 no content
   }),
 )

@@ -85,8 +85,8 @@ const updateNotice = async (
   }
 }
 
-router.get('/', user, auth, admin, getAllNotice)
-router.get('/:id', user, auth, admin, getNotice)
+router.get('/', getAllNotice)
+router.get('/:id', getNotice)
 router.post('/', user, auth, admin, createNotice)
 router.delete('/:id', user, auth, admin, deleteNotice)
 router.put('/', user, auth, admin, updateNotice)
