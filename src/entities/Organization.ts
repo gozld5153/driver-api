@@ -42,8 +42,11 @@ class Organization {
   @Column()
   profileImage?: string
 
-  @Column()
+  @Column({ nullable: true })
   email: string
+
+  @Column({ nullable: true })
+  manager: string
 
   @Column()
   phoneNumber: string

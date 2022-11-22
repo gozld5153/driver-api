@@ -29,7 +29,6 @@ import noticeRoutes from './routes/notice'
 import dataSource from './db/data-source'
 import configureOAuth from './lib/oauthConfig'
 import ensureAdmin from './db/ensureAdmin'
-import ensureClientPublic from './db/ensureClientPublic'
 import path from 'path'
 
 admin.initializeApp({
@@ -101,7 +100,7 @@ app.listen(PORT, async () => {
     await dataSource.initialize()
     console.log(`db connected at ${new Date()}`)
     await ensureAdmin()
-    await ensureClientPublic()
+    // await ensureClientPublic()
   } catch (error) {
     console.log({ startupError: error })
   } finally {

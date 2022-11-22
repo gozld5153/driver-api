@@ -24,7 +24,11 @@ const getOrganizations = async (req: Request, res: Response) => {
     const { type } = req.params
     if (!type) throw new BadRequestError('type is mandatory')
 
-    const agencies = await organizationRepository.find({ where: { type: type as any }, relations: { partners: true } })
+    const agencies = await organizationRepository.find({
+      where: { type: type as any },
+      relations: { partners: true },
+      order: { id: 'DESC' },
+    })
 
     return res.json(agencies)
   } catch (err) {
@@ -84,20 +88,17 @@ const registerOrganization = async (req: Request, res: Response) => {
   try {
     const { type } = req.params
     const { id, password } = req.body as { id: string; password: string }
-    const { name, licenseNumber, address, profileImage, email, phoneNumber, coordinate, affiliation } =
+    const { name, licenseNumber, address, profileImage, email, phoneNumber, coordinate, affiliation, manager } =
       req.body as Partial<Organization>
-    if (!type || !name || !licenseNumber || !address || !email || !phoneNumber || !affiliation)
+    if (!type || !name || !address || !phoneNumber || !affiliation)
       throw new BadRequestError(
         'type, name, licenseNumber, address, profileImage, email, phoneNumber, type, affiliation is mandatory',
       )
 
     const foundOrg = await organizationRepository.findOneBy({
       name,
-      licenseNumber,
       address,
       profileImage,
-      email,
-      phoneNumber,
       type: type as any,
     })
     if (foundOrg) throw new BadRequestError('the organization already exists')
@@ -111,6 +112,7 @@ const registerOrganization = async (req: Request, res: Response) => {
       phoneNumber,
       coordinate,
       affiliation,
+      manager,
       type: type as any,
       isVerified: false,
     })
