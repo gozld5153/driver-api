@@ -40,14 +40,23 @@ const getOrganizations = async (req: Request, res: Response) => {
 
 const getOrganization = async (req: Request, res: Response) => {
   try {
-    const user: User = res.locals.user
-
     const { id, type } = req.params
     if (!id || !type) throw new BadRequestError('id, type is mandatory')
     const organization = await organizationRepository.findOneOrFail({
       where: { id: Number(id), type: type as any },
       relations: { partners: true },
     })
+
+    const user = await userRepository.findOne({
+      where: {
+        organization: {
+          id: organization.id,
+        },
+        role: UserRole.CLIENT_PUBLIC,
+      },
+    })
+
+    if (!user) return res.status(400).send('something wrong...')
 
     return res.json({ organization, user })
   } catch (err) {
