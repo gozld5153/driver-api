@@ -141,7 +141,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
 }
 
 type NotifyOfferThenCheckItType = { offerId: number; token: string; title: string; body: string; timeout?: number }
-const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 20000 }: NotifyOfferThenCheckItType) => {
+const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 30000 }: NotifyOfferThenCheckItType) => {
   try {
     const pushResult = await notifyByPush({
       token,
@@ -174,6 +174,11 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
           order: {
             offers: {
               user: true,
+            },
+            client: {
+              organization: {
+                partners: true,
+              },
             },
             departure: true,
             destination: true,
@@ -217,19 +222,57 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
         console.log({ workers: workerIds })
 
         // find other worker (driver or hero) and push
-        const worker: (User & { distance: number }) | undefined = await userRepository
-          .createQueryBuilder()
-          .select(
-            `*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`,
-          )
-          .where({
-            role: offer.user.role,
-            status: 'ready',
-            id: Not(In(workerIds)),
+
+        //TODO: driver 일 때 협력관계인 드라이버에게 먼저 호출
+        let worker: (User & { distance: number }) | undefined
+        const hospital = offer.order.client
+
+        if (offer.user.role === UserRole.DRIVER && hospital.organization.partners) {
+          const partnerDrivers = await userRepository.find({
+            where: {
+              organization: {
+                id: hospital.organization.partners.id,
+              },
+            },
           })
-          .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
-          .orderBy('distance')
-          .getRawOne()
+
+          const partnerDriverIds = partnerDrivers.map(pd => pd.id)
+
+          worker = await userRepository
+            .createQueryBuilder()
+            .select(
+              `*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`,
+            )
+            .where({
+              role: UserRole.DRIVER,
+              status: 'ready',
+              id: Not(In(workerIds)),
+            })
+            .andWhere({
+              id: In(partnerDriverIds),
+            })
+            .orderBy('distance')
+            .getRawOne()
+        }
+
+        if (!worker) {
+          worker = await userRepository
+            .createQueryBuilder()
+            .select(
+              `*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`,
+            )
+            .where({
+              role: offer.user.role,
+              status: 'ready',
+              id: Not(In(workerIds)),
+            })
+            .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
+            .orderBy('distance')
+            .getRawOne()
+        }
+
+        console.log('timeout', { worker })
+
         if (!worker?.pushToken) {
           if (offer.user.role === UserRole.DRIVER) {
             await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
@@ -295,6 +338,11 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       relations: {
         user: { organization: true },
         order: {
+          client: {
+            organization: {
+              partners: true,
+            },
+          },
           destination: true,
           departure: true,
           offers: {
@@ -332,17 +380,54 @@ const handleOfferResponse = async (req: Request, res: Response) => {
       console.log({ workersIncludeNotSameAffiliation: workerIds })
 
       // find other driver and push
-      const worker: (User & { distance: number }) | undefined = await userRepository
-        .createQueryBuilder()
-        .select(`*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`)
-        .where({
-          role: offer.user.role,
-          status: 'ready',
-          id: Not(In(workerIds)),
+
+      // TODO: 거절했을 때 협력업체 드라이버에게 우선권
+      let worker: (User & { distance: number }) | undefined
+      const hospital = offer.order.client
+
+      if (offer.user.role === UserRole.DRIVER && hospital.organization.partners) {
+        const partnerDrivers = await userRepository.find({
+          where: {
+            organization: {
+              id: hospital.organization.partners.id,
+            },
+          },
         })
-        .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
-        .orderBy('distance')
-        .getRawOne()
+        const partnerDriverIds = partnerDrivers.map(pd => pd.id)
+
+        worker = await userRepository
+          .createQueryBuilder()
+          .select(
+            `*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`,
+          )
+          .where({
+            role: UserRole.DRIVER,
+            status: 'ready',
+            id: Not(In(workerIds)),
+          })
+          .andWhere({
+            id: In(partnerDriverIds),
+          })
+          .orderBy('distance')
+          .getRawOne()
+      }
+
+      if (!worker) {
+        worker = await userRepository
+          .createQueryBuilder()
+          .select(
+            `*, st_distance_sphere(location, st_geomfromtext('${offer.order.departure?.point}', 4326)) as distance`,
+          )
+          .where({
+            role: offer.user.role,
+            status: 'ready',
+            id: Not(In(workerIds)),
+          })
+          .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
+          .orderBy('distance')
+          .getRawOne()
+      }
+
       if (!worker?.pushToken) {
         if (offer.user.role === UserRole.DRIVER) {
           await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
