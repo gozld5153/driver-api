@@ -54,6 +54,9 @@ class Organization {
   @Column()
   address: string
 
+  @Column({ nullable: true })
+  detailAddress: string
+
   @Column({ type: 'simple-json', nullable: true })
   coordinate?: Coordinate
 

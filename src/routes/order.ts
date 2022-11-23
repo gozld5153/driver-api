@@ -575,7 +575,7 @@ const handleRequestHero = async (req: Request, res: Response) => {
       token: hero.pushToken,
       title: '출동 요청',
       body: `${driver.name}께서 ${order.departure.name} 출발 건을 요청했습니다.`,
-      timeout: 20000,
+      timeout: 30000,
     })
 
     return res.json({ success: true, message: 'hero request is processing', hero: hero.id })

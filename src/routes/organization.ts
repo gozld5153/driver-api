@@ -20,6 +20,7 @@ const registerOrganization = async (req: Request, res: Response) => {
       name,
       licenseNumber,
       address,
+      detailAddress,
       profileImage,
       email,
       phoneNumber,
@@ -53,6 +54,7 @@ const registerOrganization = async (req: Request, res: Response) => {
       name,
       licenseNumber,
       address,
+      detailAddress,
       profileImage,
       email,
       phoneNumber,
@@ -75,7 +77,8 @@ const registerOrganization = async (req: Request, res: Response) => {
 
 const updateOrganization = async (req: Request, res: Response) => {
   try {
-    const { id, name, licenseNumber, address, phoneNumber, email, type, certificate, affiliation } = req.body
+    const { id, name, licenseNumber, address, detailAddress, phoneNumber, email, type, certificate, affiliation } =
+      req.body
     if (!id) throw new BadRequestError('id is mandatory')
 
     const user = res.locals.user as User
@@ -91,6 +94,7 @@ const updateOrganization = async (req: Request, res: Response) => {
     if (name) org.name = name
     if (licenseNumber) org.licenseNumber = licenseNumber
     if (address) org.address = address
+    if (detailAddress) org.detailAddress = detailAddress
     if (phoneNumber) org.phoneNumber = phoneNumber
     if (email) org.email = email
     if (certificate) org.certificate = certificate
