@@ -294,6 +294,26 @@ const getDrivers = async (_req: Request, res: Response) => {
   }
 }
 
+const changePassword = async (req: Request<any, any, { id: number; password: string }>, res: Response) => {
+  try {
+    const { id, password } = req.body
+    const hospital = await organizationRepository.findOneOrFail({ where: { id }, relations: { users: true } })
+    const clientPublic = hospital.users.find(u => u.role === UserRole.CLIENT_PUBLIC)
+
+    if (!clientPublic) return res.status(400).send('something wrong...')
+
+    const findUser = await userRepository.findOneByOrFail({ id: clientPublic.id })
+
+    findUser.password = password
+    await userRepository.save(findUser)
+
+    return res.json({ findUser })
+  } catch (err) {
+    console.log(err)
+    return res.status(500)
+  }
+}
+
 router.get('/locations/records', user, auth, admin, handleGetLocationRecords)
 router.get('/locations/queries', user, auth, admin, handleGetLocationQueries)
 
@@ -310,6 +330,7 @@ router.post('/organizations/:type/register', user, auth, admin, registerOrganiza
 router.put('/partners', user, auth, admin, updatePartners)
 
 router.get('/drivers', user, auth, getDrivers)
+router.put('/organization/password', changePassword)
 
 // router.get('/users/:role', user, auth,admin, getUsers)
 
