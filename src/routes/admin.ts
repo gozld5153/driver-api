@@ -3,10 +3,12 @@ import {
   invitationRepository,
   locationQueryRepository,
   locationRecordRepository,
+  orderRepository,
   organizationRepository,
   userRepository,
 } from '../db/repositories'
 import LocationQuery from '../entities/LocationQuery'
+import { OrderStatus } from '../entities/Order'
 import Organization from '../entities/Organization'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
@@ -323,6 +325,34 @@ const changePassword = async (req: Request<any, any, { id: number; password: str
   }
 }
 
+const getEvent = async (_req: Request, res: Response) => {
+  try {
+    const allUser = await userRepository.find({ where: { role: UserRole.HERO }, relations: { friend: true } })
+
+    const friendUsers = allUser.filter(u => u.friend)
+
+    let result = await Promise.all(
+      friendUsers.map(async u => {
+        const friendUserCall = await orderRepository.count({
+          where: { hero: { id: u.friend.id }, status: OrderStatus.COMPLETED },
+        })
+        const newUserCall = await orderRepository.count({
+          where: { hero: { id: u.id }, status: OrderStatus.COMPLETED },
+        })
+
+        return { ...u, friendUserCall, newUserCall }
+      }),
+    )
+
+    result = result.filter(u => u.friendUserCall > 0 && u.newUserCall > 0)
+
+    res.json({ result })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 router.get('/locations/records', user, auth, admin, handleGetLocationRecords)
 router.get('/locations/queries', user, auth, admin, handleGetLocationQueries)
 
@@ -342,5 +372,7 @@ router.get('/drivers', user, auth, getDrivers)
 router.put('/organization/password', changePassword)
 
 // router.get('/users/:role', user, auth,admin, getUsers)
+
+router.get('/event', user, auth, admin, getEvent)
 
 export default router
