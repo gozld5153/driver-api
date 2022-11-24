@@ -201,7 +201,7 @@ const registerHero = async (req: Request, res: Response) => {
       phoneNumber,
     })
 
-    if (friendPhoneNumber) {
+    if (friendPhoneNumber && friendPhoneNumber !== phoneNumber) {
       const friend = await userRepository.findOneBy({
         phoneNumber: friendPhoneNumber,
       })

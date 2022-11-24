@@ -41,6 +41,7 @@ const getOrganizations = async (req: Request, res: Response) => {
 const getOrganization = async (req: Request, res: Response) => {
   try {
     const { id, type } = req.params
+
     if (!id || !type) throw new BadRequestError('id, type is mandatory')
     const organization = await organizationRepository.findOneOrFail({
       where: { id: Number(id), type: type as any },
@@ -52,7 +53,6 @@ const getOrganization = async (req: Request, res: Response) => {
         organization: {
           id: organization.id,
         },
-        role: UserRole.CLIENT_PUBLIC,
       },
     })
 
