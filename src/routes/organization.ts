@@ -1,9 +1,9 @@
 import { Request, Response, Router } from 'express'
-import { Between, In } from 'typeorm'
+import { Between, In, Like } from 'typeorm'
 import { carInfoRepository, orderRepository, organizationRepository, userRepository } from '../db/repositories'
 import CarInfo from '../entities/CarInfo'
 import { OrderStatus } from '../entities/Order'
-import Organization from '../entities/Organization'
+import Organization, { OrganizationType } from '../entities/Organization'
 import User from '../entities/User'
 import BadRequestError from '../errors/BadRequestError'
 import handleErrorAndSendResponse from '../errors/handleErrorThenSendResponse'
@@ -313,6 +313,26 @@ const getOrders = async (
   }
 }
 
+const searchOrganization = async (
+  req: Request<{ type: OrganizationType }, any, any, { word: string }>,
+  res: Response,
+) => {
+  try {
+    const { word } = req.query
+    const { type } = req.params
+    let organizations: Organization[]
+    if (!word) {
+      organizations = await organizationRepository.find({ where: { type } })
+    } else {
+      organizations = await organizationRepository.find({ where: { type, name: Like(`%${word}%`) } })
+    }
+    res.json({ organizations })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
 // /organization
 router.post('/register', user, auth, registerOrganization)
 router.put('/update', user, auth, updateOrganization)
@@ -326,5 +346,7 @@ router.get('/drivers', user, auth, getDriver)
 router.get('/sales/:driverId', user, auth, getDriverSales)
 router.get('/sales/:startDate/:lastDate/:agencyId', user, auth, getAllDriverSales) //agency 전용
 router.get('/order/:startDate/:lastDate', user, auth, getOrders)
+
+router.get('/:type', user, auth, searchOrganization)
 
 export default router

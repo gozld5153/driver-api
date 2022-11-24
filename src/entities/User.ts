@@ -127,7 +127,6 @@ class User {
   @OneToMany(() => Reservation, res => res.driver)
   reservations: Reservation[]
 
-  @Exclude()
   @CreateDateColumn()
   createdAt: Date
 
@@ -135,6 +134,7 @@ class User {
   @UpdateDateColumn()
   updatedAt: Date
 
+  @Exclude()
   @DeleteDateColumn()
   deletedAt: Date
 

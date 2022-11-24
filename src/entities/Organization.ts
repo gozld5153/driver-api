@@ -15,7 +15,7 @@ import Invitation from './Invitation'
 import User from './User'
 import CarInfo from './CarInfo'
 
-type OrganizationType = 'hospital' | 'agency'
+export type OrganizationType = 'hospital' | 'agency'
 type Coordinate = {
   longitude: string
   latitude: string
