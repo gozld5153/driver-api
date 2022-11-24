@@ -314,22 +314,32 @@ const getOrders = async (
 }
 
 const searchOrganization = async (
-  req: Request<{ type: OrganizationType }, any, any, { word: string }>,
+  req: Request<{ type: OrganizationType }, any, any, { word: string; category: string }>,
   res: Response,
 ) => {
   try {
-    const { word } = req.query
+    const { word, category } = req.query
     const { type } = req.params
-    let organizations: Organization[]
+
     if (!word) {
-      organizations = await organizationRepository.find({ where: { type } })
-    } else {
-      organizations = await organizationRepository.find({ where: { type, name: Like(`%${word}%`) } })
+      const organizations = await organizationRepository.find({ where: { type } })
+      return res.json({ organizations })
     }
-    res.json({ organizations })
+
+    if (word && category === 'name') {
+      const organizations = await organizationRepository.find({ where: { type, name: Like(`%${word}%`) } })
+      return res.json({ organizations })
+    }
+
+    if (word && category === 'affiliation') {
+      const organizations = await organizationRepository.find({ where: { type, affiliation: Like(`%${word}%`) } })
+      return res.json({ organizations })
+    }
+
+    return
   } catch (err) {
     console.log(err)
-    res.status(500)
+    return res.status(500)
   }
 }
 
