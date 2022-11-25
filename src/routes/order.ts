@@ -41,7 +41,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
       etc,
     } = req.body
     const user: User = res.locals.user
-    if (!d2 || !d1 || !clientPhoneNumber || !patientName || !patientPhoneNumber)
+    if (!d2 || !d1 || !clientPhoneNumber || !patientName)
       throw new BadRequestError('destination, departure, phoneNumber, patient, patientPhoneNumber is mandatory')
 
     const departure = (await placeRepository.findOneBy({ ...d1 })) ?? (await placeRepository.save(new Place(d1)))
