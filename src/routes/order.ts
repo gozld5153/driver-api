@@ -110,7 +110,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
     }
 
     if (!driver) {
-      await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
+      await sendSMS(order.clientPhoneNumber, '[구출이] 반경 10km 내 드라이버가 없습니다.')
       order.status = OrderStatus.NO_DRIVER
       const savedOrder = await orderRepository.save(order)
       return res.json(savedOrder)
@@ -275,7 +275,7 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
 
         if (!worker?.pushToken) {
           if (offer.user.role === UserRole.DRIVER) {
-            await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
+            await sendSMS(order.clientPhoneNumber, '[구출이] 반경 10km 내 드라이버가 없습니다.')
             order.status = OrderStatus.CANCELLED
             await orderRepository.save(order)
           }
@@ -430,7 +430,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
 
       if (!worker?.pushToken) {
         if (offer.user.role === UserRole.DRIVER) {
-          await sendSMS(order.clientPhoneNumber, '반경 10km 내 드라이버가 없습니다.')
+          await sendSMS(order.clientPhoneNumber, '[구출이] 반경 10km 내 드라이버가 없습니다.')
           order.status = OrderStatus.CANCELLED
           await orderRepository.save(order)
         }
@@ -461,7 +461,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
 
       if (user.role === UserRole.DRIVER) {
         offer.order.driver = user
-        await sendSMS(order.clientPhoneNumber, '드라이버가 매칭되었습니다.')
+        await sendSMS(order.clientPhoneNumber, '[구출이] 드라이버가 매칭되었습니다.')
       }
       if (user.role === UserRole.HERO) offer.order.hero = user
 
@@ -678,8 +678,6 @@ const orderCheck = async (req: Request, res: Response) => {
       relations: { hero: true },
     })
 
-    console.log(order)
-
     if (order.hero) return res.json({ possibleReject: false })
 
     return res.json({ possibleReject: true })
@@ -705,18 +703,19 @@ const offerCheck = async (req: Request<{ offerId: string }>, res: Response) => {
       user: { id: offer.order.driver.id },
     })
 
-    if (driverOffer.status === OfferStatus.REJECTED) {
+    if (driverOffer.status === OfferStatus.REJECTED || offer.order.status === OrderStatus.CANCELLED) {
       user.status = 'ready'
       await userRepository.save(user)
 
       offer.status = OfferStatus.REJECTED
       await offerRepository.save(offer)
+      return res.json({ isRejected: true })
     }
 
-    res.json({ isRejected: driverOffer.status === OfferStatus.REJECTED })
+    return res.json({ isRejected: false })
   } catch (err) {
     console.log(err)
-    res.status(500)
+    return res.status(500)
   }
 }
 
@@ -735,6 +734,72 @@ const getOrderStatus = async (req: Request<{ orderId: string; driverId: string }
   }
 }
 
+const cancelOrder = async (req: Request<any, any, { orderId: number }>, res: Response) => {
+  try {
+    const { orderId } = req.body
+
+    const order = await orderRepository.findOneOrFail({
+      where: { id: orderId },
+      relations: { driver: true, hero: true },
+    })
+
+    order.status = OrderStatus.CANCELLED
+
+    await orderRepository.save(order)
+
+    if (order.driver) {
+      notifyByPush({
+        token: order.driver.pushToken,
+        notification: {
+          title: '병원에서 호출을 취소했습니다.',
+          body: '병원 호출이 취소되어 호출 대기 상태로 넘어갑니다.',
+        },
+        data: { cancel: 'true' },
+      })
+    }
+
+    if (order.hero) {
+      notifyByPush({
+        token: order.hero.pushToken,
+        notification: {
+          title: '병원에서 호출을 취소했습니다.',
+          body: '병원 호출이 취소되어 호출 대기 상태로 넘어갑니다.',
+        },
+        data: { cancel: 'true' },
+      })
+    }
+
+    res.json({ order })
+  } catch (err) {
+    console.log(err)
+    res.status(500)
+  }
+}
+
+const checkOrderIsCancel = async (req: Request<{ offerId: string }>, res: Response) => {
+  try {
+    const offerId = Number(req.params.offerId)
+    const user: User = res.locals.user
+
+    const offer = await offerRepository.findOneOrFail({ where: { id: offerId }, relations: { order: true } })
+    const order = await orderRepository.findOneByOrFail({ id: offer.order.id })
+
+    if (order.status === OrderStatus.CANCELLED) {
+      offer.status = OfferStatus.REJECTED
+      await offerRepository.save(offer)
+
+      user.status = 'ready'
+      await userRepository.save(user)
+
+      return res.json({ possibleReject: true })
+    }
+    return res.json({ possibleReject: false })
+  } catch (err) {
+    console.log(err)
+    return res.status(500)
+  }
+}
+
 // /order
 router.post('/request', user, auth, handleRequestOrder)
 
@@ -749,7 +814,10 @@ router.get('/:id', user, auth, handleGetOrder)
 router.get('/completed/:role', user, auth, getCompletedOrder)
 
 router.get('/check/:orderId', user, auth, orderCheck) //* driver
+router.get('/offer/check/:offerId', user, auth, checkOrderIsCancel) //*driver
 router.get('/check/offer/:offerId', user, auth, offerCheck) //* hero
 router.get('/status/:orderId/:driverId', user, auth, getOrderStatus) //*hospital
+
+router.put('/cancel', user, auth, cancelOrder)
 
 export default router
