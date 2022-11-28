@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express'
+import { Like } from 'typeorm'
 import {
   invitationRepository,
   locationQueryRepository,
@@ -356,6 +357,60 @@ const getEvent = async (_req: Request, res: Response) => {
   }
 }
 
+const getOrderHistory = async (
+  req: Request<any, any, any, { page: string; listNum: string; search?: string }>,
+  res: Response,
+) => {
+  try {
+    const { page, listNum, search } = req.query
+
+    if (!search) {
+      const orders = await orderRepository.find({
+        relations: {
+          driver: {
+            organization: true,
+          },
+          hero: true,
+          invoice: true,
+          departure: true,
+          destination: true,
+        },
+        take: Number(listNum),
+        skip: Number(listNum) * (Number(page) - 1),
+        order: { id: 'DESC' },
+      })
+
+      return res.json({ orders })
+    }
+
+    const orders = await orderRepository.find({
+      relations: {
+        driver: {
+          organization: true,
+        },
+        hero: true,
+        invoice: true,
+        departure: true,
+        destination: true,
+      },
+      where: [
+        { driver: { name: Like(`%${search}%`) } },
+        { hero: { name: Like(`%${search}%`) } },
+        { departure: { name: Like(`%${search}%`) } },
+        { destination: { name: Like(`%${search}%`) } },
+      ],
+      take: Number(listNum),
+      skip: Number(listNum) * (Number(page) - 1),
+      order: { id: 'DESC' },
+    })
+
+    return res.json({ orders })
+  } catch (err) {
+    console.log(err)
+    return res.status(500)
+  }
+}
+
 router.get('/locations/records', user, auth, admin, handleGetLocationRecords)
 router.get('/locations/queries', user, auth, admin, handleGetLocationQueries)
 
@@ -377,5 +432,7 @@ router.put('/organization/password', changePassword)
 // router.get('/users/:role', user, auth,admin, getUsers)
 
 router.get('/event', user, auth, admin, getEvent)
+
+router.get('/order/history', user, auth, admin, getOrderHistory)
 
 export default router
