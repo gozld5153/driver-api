@@ -404,7 +404,7 @@ const getOrderHistory = async (
       order: { id: 'DESC' },
     })
 
-    return res.json({ orders })
+    return res.json({ orders, total: orders.length })
   } catch (err) {
     console.log(err)
     return res.status(500)
