@@ -187,7 +187,6 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
       })
 
       const order = await orderRepository.findOneByOrFail({ id: offer.order.id })
-      if (order.status === OrderStatus.CANCELLED) return
 
       if (offer.status === OfferStatus.PENDING) {
         // mark offer as timeout
@@ -217,6 +216,8 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
             role: UserRole.DRIVER,
           },
         })
+
+        if (order.status === OrderStatus.CANCELLED) return
 
         let workerIds = offer.order.offers.filter(of => of.type === offer.type).map(offer => offer.user.id)
         workerIds = [...workerIds, ...notSameAffiliationDrivers.map(d => d.id)]
