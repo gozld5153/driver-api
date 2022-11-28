@@ -187,6 +187,7 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
       })
 
       const order = await orderRepository.findOneByOrFail({ id: offer.order.id })
+      if (order.status === OrderStatus.CANCELLED) return
 
       if (offer.status === OfferStatus.PENDING) {
         // mark offer as timeout
@@ -360,6 +361,9 @@ const handleOfferResponse = async (req: Request, res: Response) => {
 
       user.status = 'ready'
       await userRepository.save(user)
+
+      if (order.status === OrderStatus.CANCELLED)
+        return res.json({ success: true, offerId, message: 'hospital cancled offer' })
 
       let workerIds = offer.order.offers.filter(of => of.type === offer.type).map(of => of.user.id)
 
