@@ -365,7 +365,7 @@ const getOrderHistory = async (
     const { page, listNum, search } = req.query
 
     if (!search) {
-      const orders = await orderRepository.find({
+      const orders = await orderRepository.findAndCount({
         relations: {
           driver: {
             organization: true,
@@ -383,7 +383,7 @@ const getOrderHistory = async (
       return res.json({ orders })
     }
 
-    const orders = await orderRepository.find({
+    const orders = await orderRepository.findAndCount({
       relations: {
         driver: {
           organization: true,
@@ -404,7 +404,7 @@ const getOrderHistory = async (
       order: { id: 'DESC' },
     })
 
-    return res.json({ orders, total: orders.length })
+    return res.json({ orders })
   } catch (err) {
     console.log(err)
     return res.status(500)
