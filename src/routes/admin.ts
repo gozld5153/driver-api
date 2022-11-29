@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express'
+import { Brackets, Like } from 'typeorm'
 import {
   invitationRepository,
   locationQueryRepository,
@@ -363,27 +364,6 @@ const getOrderHistory = async (
   try {
     const { page, listNum, search } = req.query
 
-    console.log({ page, listNum, search })
-
-    if (!search) {
-      const orders = await orderRepository.findAndCount({
-        relations: {
-          driver: {
-            organization: true,
-          },
-          hero: true,
-          invoice: true,
-          departure: true,
-          destination: true,
-        },
-        take: Number(listNum),
-        skip: Number(listNum) * (Number(page) - 1),
-        order: { id: 'DESC' },
-      })
-
-      return res.json({ orders })
-    }
-
     const orders = await orderRepository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.driver', 'driver')
@@ -403,6 +383,65 @@ const getOrderHistory = async (
       .getManyAndCount()
 
     return res.json({ orders })
+  } catch (err) {
+    console.log(err)
+    return res.status(500)
+  }
+}
+
+const getSearchDrivers = async (
+  req: Request<any, any, any, { page: string; listNum: string; search: string }>,
+  res: Response,
+) => {
+  try {
+    const { page, listNum, search } = req.query
+
+    const drivers = await userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.organization', 'organization')
+      .where('user.role = :role', { role: UserRole.DRIVER })
+      .andWhere(
+        new Brackets(qb => {
+          qb.where('user.name like :userName', { userName: `%${search}%` }).orWhere('organization.name like :ogName', {
+            ogName: `%${search}%`,
+          })
+        }),
+      )
+      .take(Number(listNum))
+      .skip(Number(listNum) * (Number(page) - 1))
+      .orderBy('user.id', 'DESC')
+      .getManyAndCount()
+
+    return res.json({ drivers })
+  } catch (err) {
+    console.log(err)
+    return res.status(500)
+  }
+}
+
+const getSearchHeros = async (
+  req: Request<any, any, any, { page: string; listNum: string; search: string }>,
+  res: Response,
+) => {
+  try {
+    const { page, listNum, search } = req.query
+
+    const heros = await userRepository.findAndCount({
+      relations: {
+        certification: true,
+      },
+      where: {
+        role: UserRole.HERO,
+        name: Like(`%${search}%`),
+      },
+      take: Number(listNum),
+      skip: Number(listNum) * (Number(page) - 1),
+      order: {
+        id: 'DESC',
+      },
+    })
+
+    return res.json({ heros })
   } catch (err) {
     console.log(err)
     return res.status(500)
@@ -432,5 +471,7 @@ router.put('/organization/password', changePassword)
 router.get('/event', user, auth, admin, getEvent)
 
 router.get('/order/history', user, auth, admin, getOrderHistory)
+router.get('/driver', user, auth, admin, getSearchDrivers)
+router.get('/hero', user, auth, admin, getSearchHeros)
 
 export default router
