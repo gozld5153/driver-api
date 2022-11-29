@@ -393,6 +393,7 @@ const getOrderHistory = async (
       .leftJoinAndSelect('order.departure', 'departure')
       .leftJoinAndSelect('order.destination', 'destination')
       .orWhere('driver.name like :driverName', { driverName: `%${search}%` })
+      .orWhere('organization.name like :name', { name: `%${search}%` })
       .orWhere('hero.name like :heroName', { heroName: `%${search}%` })
       .orWhere('departure.name like :departureName', { departureName: `%${search}%` })
       .orWhere('destination.name like :destinationName', { destinationName: `%${search}%` })
