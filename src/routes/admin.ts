@@ -71,8 +71,20 @@ const getOrganization = async (req: Request, res: Response) => {
 const updateOrganization = async (req: Request, res: Response) => {
   try {
     const { type } = req.params
-    const { id, name, licenseNumber, profileImage, email, phoneNumber, address, isVerified, affiliation, manager } =
-      req.body
+    const {
+      id,
+      name,
+      licenseNumber,
+      profileImage,
+      email,
+      phoneNumber,
+      address,
+      detailAddress,
+      isVerified,
+      affiliation,
+      manager,
+      coordinate,
+    } = req.body
 
     if (!id || !type) throw new BadRequestError('id, type is mandatory')
 
@@ -84,9 +96,11 @@ const updateOrganization = async (req: Request, res: Response) => {
     if (email) organization.email = email
     if (phoneNumber) organization.phoneNumber = phoneNumber
     if (address) organization.address = address
+    if (detailAddress) organization.detailAddress = detailAddress
     if (isVerified !== undefined) organization.isVerified = isVerified
     if (manager !== undefined) organization.manager = manager
     if (affiliation !== undefined) organization.affiliation = affiliation
+    if (coordinate !== undefined) organization.coordinate = coordinate
 
     console.log({ organization })
 
