@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express'
-import { Like } from 'typeorm'
 import {
   invitationRepository,
   locationQueryRepository,
@@ -364,6 +363,8 @@ const getOrderHistory = async (
   try {
     const { page, listNum, search } = req.query
 
+    console.log({ page, listNum, search })
+
     if (!search) {
       const orders = await orderRepository.findAndCount({
         relations: {
@@ -383,26 +384,22 @@ const getOrderHistory = async (
       return res.json({ orders })
     }
 
-    const orders = await orderRepository.findAndCount({
-      relations: {
-        driver: {
-          organization: true,
-        },
-        hero: true,
-        invoice: true,
-        departure: true,
-        destination: true,
-      },
-      where: [
-        { driver: { name: Like(`%${search}%`) } },
-        { hero: { name: Like(`%${search}%`) } },
-        { departure: { name: Like(`%${search}%`) } },
-        { destination: { name: Like(`%${search}%`) } },
-      ],
-      take: Number(listNum),
-      skip: Number(listNum) * (Number(page) - 1),
-      order: { id: 'DESC' },
-    })
+    const orders = await orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.driver', 'driver')
+      .leftJoinAndSelect('driver.organization', 'organization')
+      .leftJoinAndSelect('order.hero', 'hero')
+      .leftJoinAndSelect('order.invoice', 'invoice')
+      .leftJoinAndSelect('order.departure', 'departure')
+      .leftJoinAndSelect('order.destination', 'destination')
+      .orWhere('driver.name like :driverName', { driverName: `%${search}%` })
+      .orWhere('hero.name like :heroName', { heroName: `%${search}%` })
+      .orWhere('departure.name like :departureName', { departureName: `%${search}%` })
+      .orWhere('destination.name like :destinationName', { destinationName: `%${search}%` })
+      .take(Number(listNum))
+      .skip(Number(listNum) * (Number(page) - 1))
+      .orderBy('order.id', 'DESC')
+      .getManyAndCount()
 
     return res.json({ orders })
   } catch (err) {
