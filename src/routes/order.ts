@@ -93,7 +93,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
       .where('role=:role', { role: UserRole.DRIVER })
       .andWhere('status=:status', { status: 'ready' })
       .andWhere({ id: In(partnersDriverUsersIds) })
-      .andWhere(`st_distance_sphere(st_geomfromtext('${departure?.point}', 4326), user.location) <= 10000`)
+      .andWhere(`st_distance_sphere(st_geomfromtext('${departure?.point}', 4326), user.location) <= 30000`)
       .orderBy('distance')
       .getRawOne()
 
@@ -104,7 +104,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
         .where('role=:role', { role: UserRole.DRIVER })
         .andWhere('status=:status', { status: 'ready' })
         .andWhere({ id: In(sameAffiliationDriverUsersIds) })
-        .andWhere(`st_distance_sphere(st_geomfromtext('${departure?.point}', 4326), user.location) <= 10000`)
+        .andWhere(`st_distance_sphere(st_geomfromtext('${departure?.point}', 4326), user.location) <= 30000`)
         .orderBy('distance')
         .getRawOne()
     }
@@ -141,7 +141,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
 }
 
 type NotifyOfferThenCheckItType = { offerId: number; token: string; title: string; body: string; timeout?: number }
-const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 30000 }: NotifyOfferThenCheckItType) => {
+const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 60000 }: NotifyOfferThenCheckItType) => {
   try {
     const pushResult = await notifyByPush({
       token,
@@ -268,7 +268,7 @@ const checkOfferStatus = (offerId: number, timeout: number) => {
               status: 'ready',
               id: Not(In(workerIds)),
             })
-            .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
+            .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 30000`)
             .orderBy('distance')
             .getRawOne()
         }
@@ -428,7 +428,7 @@ const handleOfferResponse = async (req: Request, res: Response) => {
             status: 'ready',
             id: Not(In(workerIds)),
           })
-          .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 10000`)
+          .andWhere(`st_distance_sphere(st_geomfromtext('${offer.order.departure?.point}', 4326), location) <= 30000`)
           .orderBy('distance')
           .getRawOne()
       }
@@ -562,7 +562,7 @@ const handleRequestHero = async (req: Request, res: Response) => {
         role: UserRole.HERO,
         status: 'ready',
       })
-      .andWhere(`st_distance_sphere(st_geomfromtext('${order.departure?.point}', 4326), location) <= 10000`)
+      .andWhere(`st_distance_sphere(st_geomfromtext('${order.departure?.point}', 4326), location) <= 30000`)
       .orderBy('distance')
       .getRawOne()
     if (!hero?.pushToken) throw new Error('no hero available')
@@ -580,7 +580,7 @@ const handleRequestHero = async (req: Request, res: Response) => {
       token: hero.pushToken,
       title: '출동 요청',
       body: `${driver.name}께서 ${order.departure.name} 출발 건을 요청했습니다.`,
-      timeout: 30000,
+      timeout: 60000,
     })
 
     return res.json({ success: true, message: 'hero request is processing', hero: hero.id })
