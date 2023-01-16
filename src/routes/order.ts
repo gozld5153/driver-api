@@ -141,7 +141,7 @@ const handleRequestOrder = async (req: Request, res: Response) => {
 }
 
 type NotifyOfferThenCheckItType = { offerId: number; token: string; title: string; body: string; timeout?: number }
-const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 60000 }: NotifyOfferThenCheckItType) => {
+const notifyOfferThenCheckIt = async ({ offerId, token, title, body, timeout = 30000 }: NotifyOfferThenCheckItType) => {
   try {
     const pushResult = await notifyByPush({
       token,
@@ -580,7 +580,7 @@ const handleRequestHero = async (req: Request, res: Response) => {
       token: hero.pushToken,
       title: '출동 요청',
       body: `${driver.name}께서 ${order.departure.name} 출발 건을 요청했습니다.`,
-      timeout: 60000,
+      timeout: 30000,
     })
 
     return res.json({ success: true, message: 'hero request is processing', hero: hero.id })
